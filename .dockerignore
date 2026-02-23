@@ -1,0 +1,13 @@
+.git
+node_modules
+src/.next
+src/node_modules
+docs
+presentations
+customer
+internal-docs
+*.md
+!src/README.md
+.env*
+.vscode
+.idea
