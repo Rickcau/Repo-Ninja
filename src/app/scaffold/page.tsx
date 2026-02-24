@@ -59,9 +59,9 @@ export default function ScaffoldPage() {
     return (
       <div className="space-y-4">
         <h1 className="text-2xl font-bold">Repo Created!</h1>
-        <p>
+        <p className="text-sm text-muted-foreground">
           Your repository has been created:{" "}
-          <a href={result.repoUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+          <a href={result.repoUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-medium">
             {result.repoUrl}
           </a>
         </p>
@@ -71,7 +71,10 @@ export default function ScaffoldPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Scaffold New Repo</h1>
+      <div>
+        <h1 className="text-2xl font-bold">Scaffold New Repo</h1>
+        <p className="text-sm text-muted-foreground mt-1">Create a new repository from templates or natural language descriptions.</p>
+      </div>
 
       <Tabs defaultValue="natural-language">
         <TabsList>

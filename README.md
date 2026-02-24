@@ -35,208 +35,60 @@ Describe a coding task in free-form text, specify a target branch, and let a Cop
 
 ---
 
-## Prerequisites
+## Quick Start (Docker)
 
-- **Node.js 20+** (LTS recommended) — [Download here](https://nodejs.org/)
-- **Docker Desktop** (recommended) — [Download here](https://www.docker.com/products/docker-desktop/)
-  - Docker is used to run the app and ChromaDB together with one command
-  - If you don't want to use Docker, see [Running without Docker](#running-without-docker) below
-- **A GitHub account** (any GitHub account works — personal, organization, or enterprise)
+The fastest way to get Repo-Ninja running. Requires [Docker Desktop](https://www.docker.com/products/docker-desktop/) and a [GitHub account](https://github.com).
 
----
+**1. Register a GitHub OAuth App** at [github.com/settings/developers](https://github.com/settings/developers) — click "OAuth Apps" > "New OAuth App":
 
-## Setup Instructions
+| Field | Value |
+|-------|-------|
+| **Homepage URL** | `http://localhost:3000` |
+| **Authorization callback URL** | `http://localhost:3000/api/auth/callback/github` |
 
-### Step 1: Register a GitHub OAuth App
+Copy the **Client ID** and generate a **Client Secret**.
 
-Repo-Ninja uses GitHub OAuth so that users can sign in with their GitHub account. Before running the app, you need to register it as an OAuth App with GitHub. This is a **one-time setup step** — it tells GitHub "this application exists and is allowed to request sign-in from users."
-
-**Why is this needed?** When a user clicks "Sign in with GitHub" in Repo-Ninja, GitHub needs to know which application is making the request. The Client ID and Client Secret you get from this step are like an API key for your app — they identify the *application*, not any specific user. Any GitHub user can sign in through your app once it's registered.
-
-**How to do it:**
-
-1. Go to [github.com/settings/developers](https://github.com/settings/developers)
-2. Click **"OAuth Apps"** in the left sidebar
-3. Click **"New OAuth App"**
-4. Fill in the form:
-
-   | Field | Value |
-   |-------|-------|
-   | **Application name** | `Repo-Ninja` (or any name you like) |
-   | **Homepage URL** | `http://localhost:3000` |
-   | **Application description** | *(optional)* AI-powered command center for GitHub development |
-   | **Authorization callback URL** | `http://localhost:3000/api/auth/callback/github` |
-
-5. Click **"Register application"**
-6. On the next page, you'll see your **Client ID** — copy it
-7. Click **"Generate a new client secret"** — copy the secret immediately (you won't see it again)
-
-> **Deploying to Azure or another host?** When you deploy to a public URL, come back to this page and update the **Homepage URL** and **Authorization callback URL** to your deployed URL (e.g., `https://repo-ninja.azurewebsites.net` and `https://repo-ninja.azurewebsites.net/api/auth/callback/github`).
-
-> **Important:** Do NOT enable "Device Flow" — that is for CLI tools. Repo-Ninja uses the standard web browser redirect flow.
-
-### Step 2: Clone the repository
+**2. Clone and configure:**
 
 ```bash
 git clone https://github.com/rickcau/Repo-Ninja.git
 cd Repo-Ninja
-```
-
-### Step 3: Configure environment variables
-
-```bash
 cp .env.example .env.local
 ```
 
-Open `.env.local` in a text editor and fill in the values:
+Edit `.env.local` with your values:
 
 ```bash
-# Paste the Client ID and Client Secret from Step 1
-GITHUB_CLIENT_ID=your-client-id-from-step-1
-GITHUB_CLIENT_SECRET=your-client-secret-from-step-1
-
-# Session encryption key — generate one by running ONE of these commands:
-#   node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
-#   openssl rand -base64 32
-# Do NOT use a plain text phrase — use a generated random value
-NEXTAUTH_SECRET=paste-your-generated-secret-here
-
-# Leave these as-is for local development
+GITHUB_CLIENT_ID=your-client-id
+GITHUB_CLIENT_SECRET=your-client-secret
+NEXTAUTH_SECRET=generate-with: node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 NEXTAUTH_URL=http://localhost:3000
 CHROMADB_URL=http://localhost:8000
 ```
 
-| Variable | What it is | Where to get it |
-|----------|-----------|-----------------|
-| `GITHUB_CLIENT_ID` | Identifies your app to GitHub | Step 1 above |
-| `GITHUB_CLIENT_SECRET` | Proves your app's identity to GitHub | Step 1 above |
-| `NEXTAUTH_SECRET` | Encrypts user sessions (random value) | Run `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"` |
-| `NEXTAUTH_URL` | Your app's URL | `http://localhost:3000` for local dev |
-| `CHROMADB_URL` | Where ChromaDB is running | `http://localhost:8000` (default) |
+**3. Start:**
 
-### Step 4: Start the application
-
-**Make sure Docker Desktop is running first.** You should see the Docker whale icon in your system tray (Windows) or menu bar (Mac). If it's not running, open Docker Desktop from your Start menu / Applications and wait for it to fully start.
-
-**Windows (PowerShell):**
-```powershell
-.\start.ps1
-```
-
-**Mac/Linux:**
-```bash
-./start.sh
-```
-
-**Or run directly:**
 ```bash
 docker-compose up -d
 ```
 
-This starts two services:
-- **Repo-Ninja web app** on [http://localhost:3000](http://localhost:3000)
-- **ChromaDB** (knowledge base search engine) on port 8000
+Open [http://localhost:3000](http://localhost:3000) and sign in with GitHub.
 
-To see logs (helpful for debugging):
-
-```bash
-docker-compose logs -f
-```
-
-To stop everything:
+**4. Stop:**
 
 ```bash
 docker-compose down
 ```
 
-### Step 5: Sign in and use
-
-1. Open [http://localhost:3000](http://localhost:3000) in your browser
-2. Click **"Sign in with GitHub"**
-3. GitHub will ask you to authorize the Repo-Ninja app — click **"Authorize"**
-4. You're in! Any GitHub user can sign in this way.
-
 ---
 
-## Troubleshooting
+## Setup Guides
 
-### `docker-compose up` fails with "pipe/dockerDesktopLinuxEngine: The system cannot find the file specified"
-
-**Docker Desktop is not running.** Open Docker Desktop from your Start menu (Windows) or Applications (Mac), wait for it to fully start (the whale icon in the system tray should stop animating), then try again.
-
-### `docker-compose up` fails with ".env.local not found"
-
-You haven't created the environment file yet. Run:
-
-```bash
-cp .env.example .env.local
-```
-
-Then fill in the values as described in [Step 3](#step-3-configure-environment-variables).
-
-### `docker-compose up` succeeds but the app won't load at localhost:3000
-
-- Wait 30-60 seconds — the app takes time to build on first start
-- Check the logs: `docker-compose logs app`
-- Make sure port 3000 isn't already in use by another application
-
-### Changes to `.env.local` aren't taking effect
-
-Docker Compose reads the env file when containers start, not when they're already running. After editing `.env.local`, you must restart:
-
-```bash
-docker-compose down
-docker-compose up -d
-```
-
-You do **not** need `--build` — env vars are injected at runtime.
-
-### "Sign in with GitHub" shows an error
-
-- Double-check that your `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` in `.env.local` match what's shown on your [GitHub OAuth App page](https://github.com/settings/developers)
-- Make sure the **Authorization callback URL** on your GitHub OAuth App is exactly `http://localhost:3000/api/auth/callback/github` (no trailing slash)
-- If you regenerated your client secret, update `.env.local` and restart: `docker-compose down && docker-compose up -d`
-
-### ChromaDB shows "disconnected" on the Settings page
-
-- Check if ChromaDB is running: `docker-compose ps` — the `chromadb` service should show "running" and "healthy"
-- If it's not healthy, check its logs: `docker-compose logs chromadb`
-- Make sure `CHROMADB_URL=http://localhost:8000` is set in `.env.local`
-
----
-
-## Running without Docker
-
-If you prefer not to use Docker, you can run the Next.js app directly with Node.js. You will still need Docker (or another method) to run ChromaDB.
-
-### Option A: Node.js app + ChromaDB in Docker
-
-```bash
-# Terminal 1: Start ChromaDB
-docker run -d -p 8000:8000 --name chromadb chromadb/chroma:latest
-
-# Terminal 2: Start the Next.js app
-cd src
-npm install
-npm run dev
-```
-
-### Option B: Everything without Docker
-
-```bash
-# Install and run ChromaDB via pip (requires Python 3.9+)
-pip install chromadb
-chroma run --host 0.0.0.0 --port 8000
-
-# In another terminal, start the Next.js app
-cd src
-npm install
-npm run dev
-```
-
-In both cases, make sure your `.env.local` file exists in the repo root with the values from [Step 3](#step-3-configure-environment-variables).
-
-The app will be available at [http://localhost:3000](http://localhost:3000).
+| Guide | Description |
+|-------|-------------|
+| [Docker Setup](docs/setup-docker.md) | Full Docker guide with troubleshooting, common commands, and detailed configuration |
+| [Local Development](docs/setup-local.md) | Run the Next.js app locally with hot reload (ChromaDB in Docker or standalone) |
+| [Deploy to Azure](docs/setup-azure.md) | Deploy to Azure Container Apps or App Service with CI/CD and Key Vault |
 
 ---
 
@@ -261,20 +113,9 @@ Repo-Ninja is designed with responsible AI principles. See [docs/RAI.md](docs/RA
 - Bias mitigation
 - Security practices
 
-## Deployment to Azure
+## Deployment
 
-1. **Deploy the app** to Azure App Service (or Azure Container Apps)
-2. **Deploy ChromaDB** to Azure Container Apps (or swap to Azure AI Search via the KnowledgeStore interface)
-3. **Set environment variables** in Azure App Service Configuration:
-   - `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` — same values from your GitHub OAuth App
-   - `NEXTAUTH_SECRET` — same session encryption key
-   - `NEXTAUTH_URL` — your Azure URL (e.g., `https://repo-ninja.azurewebsites.net`)
-   - `CHROMADB_URL` — your ChromaDB container URL
-4. **Update your GitHub OAuth App** at [github.com/settings/developers](https://github.com/settings/developers):
-   - Change **Homepage URL** to your Azure URL
-   - Change **Authorization callback URL** to `https://your-app.azurewebsites.net/api/auth/callback/github`
-5. Optional: Use **Azure Key Vault** for secrets management
-6. Optional: **Foundry IQ** integration via the KnowledgeStore interface
+See the [Azure Deployment Guide](docs/setup-azure.md) for step-by-step instructions covering Azure Container Apps, App Service, Key Vault, and CI/CD.
 
 ## License
 

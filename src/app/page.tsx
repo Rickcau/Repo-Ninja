@@ -6,9 +6,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { StatusBadge } from "@/components/shared/status-badge";
-import { Hammer, FileSearch, ShieldCheck, Github } from "lucide-react";
+import { Hammer, FileSearch, ShieldCheck, Github, Bot, BookOpen } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { AgentTask } from "@/lib/types";
+
+const quickActions = [
+  { href: "/scaffold", label: "Scaffold New Repo", icon: Hammer, variant: "default" as const },
+  { href: "/reviews", label: "Start Code Review", icon: FileSearch, variant: "outline" as const },
+  { href: "/reviews?tab=audit", label: "Run Audit", icon: ShieldCheck, variant: "outline" as const },
+];
 
 export default function DashboardPage() {
   const { data: session } = useSession();
@@ -23,53 +29,96 @@ export default function DashboardPage() {
 
   if (!session) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-        <Github className="h-16 w-16 text-muted-foreground" />
-        <h1 className="text-2xl font-bold">Welcome to Repo-Ninja</h1>
-        <p className="text-muted-foreground">
-          Sign in with GitHub to get started.
-        </p>
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6">
+        <div className="rounded-full bg-primary/10 p-6">
+          <Github className="h-12 w-12 text-primary" />
+        </div>
+        <div className="text-center space-y-2">
+          <h1 className="text-2xl font-bold">Welcome to Repo-Ninja</h1>
+          <p className="text-sm text-muted-foreground max-w-md">
+            Your AI-powered command center for GitHub development workflows.
+            Sign in with GitHub to get started.
+          </p>
+        </div>
       </div>
     );
   }
+
+  const runningCount = tasks.filter((t) => t.status === "running").length;
+  const completedCount = tasks.filter((t) => t.status === "completed").length;
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Dashboard</h1>
-        <p className="text-muted-foreground">
+        <p className="text-sm text-muted-foreground mt-1">
           Connected as {session.user?.name || session.user?.email}
         </p>
       </div>
 
-      <div className="flex gap-3">
-        <Link href="/scaffold">
-          <Button>
-            <Hammer className="h-4 w-4 mr-2" />
-            Scaffold New Repo
-          </Button>
-        </Link>
-        <Link href="/reviews">
-          <Button variant="outline">
-            <FileSearch className="h-4 w-4 mr-2" />
-            Start Code Review
-          </Button>
-        </Link>
-        <Link href="/reviews?tab=audit">
-          <Button variant="outline">
-            <ShieldCheck className="h-4 w-4 mr-2" />
-            Run Audit
-          </Button>
-        </Link>
+      {/* Metric tiles */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="pt-4 pb-4">
+            <div className="flex items-center gap-2">
+              <Bot className="h-4 w-4 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">Active Agents</span>
+            </div>
+            <p className="text-2xl font-bold mt-2">{runningCount}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4 pb-4">
+            <div className="flex items-center gap-2">
+              <FileSearch className="h-4 w-4 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">Completed Tasks</span>
+            </div>
+            <p className="text-2xl font-bold mt-2">{completedCount}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4 pb-4">
+            <div className="flex items-center gap-2">
+              <Hammer className="h-4 w-4 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">Total Tasks</span>
+            </div>
+            <p className="text-2xl font-bold mt-2">{tasks.length}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4 pb-4">
+            <div className="flex items-center gap-2">
+              <BookOpen className="h-4 w-4 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">Knowledge Docs</span>
+            </div>
+            <p className="text-2xl font-bold mt-2">&mdash;</p>
+          </CardContent>
+        </Card>
       </div>
 
+      {/* Quick actions */}
+      <div className="flex gap-3">
+        {quickActions.map((action) => (
+          <Link key={action.href} href={action.href}>
+            <Button variant={action.variant}>
+              <action.icon className="h-4 w-4 mr-2" />
+              {action.label}
+            </Button>
+          </Link>
+        ))}
+      </div>
+
+      {/* Active agents table */}
       <Card>
         <CardHeader>
-          <CardTitle>Active Agents</CardTitle>
+          <CardTitle className="text-lg font-semibold">Recent Agent Activity</CardTitle>
         </CardHeader>
         <CardContent>
           {tasks.length === 0 ? (
-            <p className="text-muted-foreground text-sm">No active agent tasks.</p>
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <Bot className="h-12 w-12 text-muted-foreground/50" />
+              <p className="mt-4 text-sm text-muted-foreground">No agent tasks yet. Start one from the Agents page.</p>
+            </div>
           ) : (
             <Table>
               <TableHeader>
@@ -83,8 +132,8 @@ export default function DashboardPage() {
               <TableBody>
                 {tasks.slice(0, 10).map((task) => (
                   <TableRow key={task.id}>
-                    <TableCell className="capitalize">{task.type.replace("-", " ")}</TableCell>
-                    <TableCell>{task.repo}</TableCell>
+                    <TableCell className="capitalize font-medium">{task.type.replace("-", " ")}</TableCell>
+                    <TableCell className="font-mono text-xs">{task.repo}</TableCell>
                     <TableCell className="max-w-xs truncate">{task.description}</TableCell>
                     <TableCell>
                       <StatusBadge status={task.status} />

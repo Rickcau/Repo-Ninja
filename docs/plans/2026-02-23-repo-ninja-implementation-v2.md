@@ -1,6 +1,6 @@
 # Repo-Ninja Implementation Plan
 
-> **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
+> **Note:** This implementation plan is AI-assistant agnostic and can be used with GitHub Copilot, or any AI coding assistant. All instructions are written so that a human developer can also follow them directly.
 
 **Goal:** Build a web-based command center that delegates development tasks (scaffolding, code review, issue solving, code writing, best practices audits) to GitHub Copilot agents, grounded in a customizable knowledge base with semantic search.
 
@@ -12,7 +12,7 @@
 
 ## Phase 1: Project Scaffold & Infrastructure
 
-### Task 1: Initialize Next.js Project
+### Task 1: Initialize Next.js Project [COMPLETED]
 
 **Files:**
 - Create: `src/package.json`
@@ -50,7 +50,7 @@ git commit -m "feat: initialize Next.js 14 project with TypeScript and Tailwind"
 
 ---
 
-### Task 2: Install Core Dependencies
+### Task 2: Install Core Dependencies [COMPLETED]
 
 **Files:**
 - Modify: `src/package.json`
@@ -86,7 +86,7 @@ git commit -m "feat: install core dependencies (copilot-sdk, octokit, next-auth,
 
 ---
 
-### Task 3: Set Up Shadcn UI
+### Task 3: Set Up Shadcn UI [COMPLETED]
 
 **Files:**
 - Create: `src/components/ui/button.tsx`
@@ -143,7 +143,7 @@ git commit -m "feat: set up Shadcn UI with core components"
 
 ---
 
-### Task 4: Docker Compose & Environment Configuration
+### Task 4: Docker Compose & Environment Configuration [COMPLETED]
 
 **Files:**
 - Create: `docker-compose.yml`
@@ -274,7 +274,7 @@ git commit -m "feat: add Docker Compose, Dockerfile, and environment configurati
 
 ---
 
-### Task 5: GitHub OAuth with NextAuth.js
+### Task 5: GitHub OAuth with NextAuth.js [COMPLETED]
 
 **Files:**
 - Create: `src/app/api/auth/[...nextauth]/route.ts`
@@ -388,7 +388,7 @@ git commit -m "feat: add GitHub OAuth authentication with NextAuth.js"
 
 ---
 
-### Task 6: Health Check API Route
+### Task 6: Health Check API Route [COMPLETED]
 
 **Files:**
 - Create: `src/app/api/health/route.ts`
@@ -432,7 +432,7 @@ git commit -m "feat: add health check API route with ChromaDB status"
 
 ## Phase 2: Core Library Layer
 
-### Task 7: TypeScript Types
+### Task 7: TypeScript Types [COMPLETED]
 
 **Files:**
 - Create: `src/lib/types.ts`
@@ -613,7 +613,7 @@ git commit -m "feat: add TypeScript types for knowledge base, agents, scaffold, 
 
 ---
 
-### Task 8: ChromaDB Client (KnowledgeStore Implementation)
+### Task 8: ChromaDB Client (KnowledgeStore Implementation) [COMPLETED]
 
 **Files:**
 - Create: `src/lib/chromadb/client.ts`
@@ -798,7 +798,7 @@ git commit -m "feat: add ChromaDB knowledge store with markdown chunking"
 
 ---
 
-### Task 9: GitHub Copilot SDK Wrapper
+### Task 9: GitHub Copilot SDK Wrapper [COMPLETED]
 
 **Files:**
 - Create: `src/lib/copilot-sdk/client.ts`
@@ -996,7 +996,7 @@ git commit -m "feat: add Copilot SDK wrapper and prompt templates"
 
 ---
 
-### Task 10: Octokit GitHub API Helper
+### Task 10: Octokit GitHub API Helper [COMPLETED]
 
 **Files:**
 - Create: `src/lib/github/octokit.ts`
@@ -1184,7 +1184,7 @@ git commit -m "feat: add Octokit GitHub API helper functions"
 
 ---
 
-### Task 11: Agent Task State Management
+### Task 11: Agent Task State Management [COMPLETED*]
 
 **Files:**
 - Create: `src/lib/agent-store.ts`
@@ -1281,7 +1281,7 @@ git commit -m "feat: add agent task state management (JSON file store)"
 
 ## Phase 3: UI Shell & Layout
 
-### Task 12: App Layout with Header & Sidebar
+### Task 12: App Layout with Header & Sidebar [COMPLETED]
 
 **Files:**
 - Create: `src/components/layout/header.tsx`
@@ -1465,7 +1465,7 @@ git commit -m "feat: add app shell with header and sidebar navigation"
 
 ---
 
-### Task 13: Dashboard Page
+### Task 13: Dashboard Page [COMPLETED]
 
 **Files:**
 - Modify: `src/app/page.tsx`
@@ -1616,7 +1616,7 @@ git commit -m "feat: add dashboard page with active agents table"
 
 ## Phase 4: Knowledge Base Feature
 
-### Task 14: Knowledge Base API Routes
+### Task 14: Knowledge Base API Routes [COMPLETED]
 
 **Files:**
 - Create: `src/app/api/knowledge/route.ts` (list, create)
@@ -1862,7 +1862,7 @@ git commit -m "feat: add knowledge base API routes (CRUD, reindex, status)"
 
 ---
 
-### Task 15: Knowledge Base UI Page
+### Task 15: Knowledge Base UI Page [COMPLETED]
 
 **Files:**
 - Create: `src/app/knowledge/page.tsx`
@@ -2301,7 +2301,7 @@ export default function KnowledgePage() {
 cd src && npm run dev
 ```
 
-Navigate to http://localhost:3000/knowledge — Expected: Knowledge base page with category filter, empty document list, and ChromaDB status.
+Navigate to http://localhost:3000/knowledge -- Expected: Knowledge base page with category filter, empty document list, and ChromaDB status.
 
 **Step 6: Commit**
 
@@ -2312,7 +2312,7 @@ git commit -m "feat: add knowledge base UI with document list, editor, and reind
 
 ---
 
-### Task 16: Seed Default Knowledge Base Documents
+### Task 16: Seed Default Knowledge Base Documents [COMPLETED*]
 
 **Files:**
 - Create: `src/knowledge-base/best-practices/react-nextjs.md`
@@ -2378,7 +2378,7 @@ Example for `src/knowledge-base/best-practices/react-nextjs.md`:
 - Use toast notifications for non-blocking errors
 ```
 
-Create similar substantive content for each file. The content should be real, actionable best practices — not filler.
+Create similar substantive content for each file. The content should be real, actionable best practices -- not filler.
 
 **Step 2: Create metadata.json**
 
@@ -2409,7 +2409,7 @@ git commit -m "feat: seed default knowledge base with best practices, scaffoldin
 
 ## Phase 5: Scaffold Feature
 
-### Task 17: Scaffold API Routes
+### Task 17: Scaffold API Routes [COMPLETED]
 
 **Files:**
 - Create: `src/app/api/scaffold/plan/route.ts`
@@ -2540,7 +2540,7 @@ git commit -m "feat: add scaffold API routes (plan generation and repo creation)
 
 ---
 
-### Task 18: Scaffold UI Page
+### Task 18: Scaffold UI Page [COMPLETED]
 
 **Files:**
 - Create: `src/app/scaffold/page.tsx`
@@ -2694,7 +2694,7 @@ export function ScaffoldPlanView({ plan, knowledgeSources, onConfirm, isCreating
             {plan.structure.map((f, i) => (
               <li key={i} className="flex gap-2">
                 <span className="text-muted-foreground">{f.path}</span>
-                <span className="text-xs text-muted-foreground">— {f.description}</span>
+                <span className="text-xs text-muted-foreground">-- {f.description}</span>
               </li>
             ))}
           </ul>
@@ -2865,7 +2865,7 @@ git commit -m "feat: add scaffold page with natural language and guided modes"
 
 ## Phase 6: Agent Management Feature
 
-### Task 19: Agent API Routes
+### Task 19: Agent API Routes [COMPLETED*]
 
 **Files:**
 - Create: `src/app/api/agents/tasks/route.ts`
@@ -2876,11 +2876,11 @@ git commit -m "feat: add scaffold page with natural language and guided modes"
 
 **Step 1:** Create these API routes following the same patterns as Tasks 14 and 17. Each route should:
 
-- `GET /api/agents/tasks` — List agent tasks from agent-store
-- `POST /api/agents/start` — Start a new agent task (issue solver or code writer). Fetches repo context via Octokit, queries ChromaDB for agent instructions, invokes Copilot SDK, creates branch and PR.
-- `GET /api/agents/[taskId]` — Get single task status
-- `GET /api/repos` — List user's repos via Octokit
-- `GET /api/repos/[owner]/[repo]/issues` — List open issues for a repo
+- `GET /api/agents/tasks` -- List agent tasks from agent-store
+- `POST /api/agents/start` -- Start a new agent task (issue solver or code writer). Fetches repo context via Octokit, queries ChromaDB for agent instructions, invokes Copilot SDK, creates branch and PR.
+- `GET /api/agents/[taskId]` -- Get single task status
+- `GET /api/repos` -- List user's repos via Octokit
+- `GET /api/repos/[owner]/[repo]/issues` -- List open issues for a repo
 
 **Step 2: Commit**
 
@@ -2891,7 +2891,7 @@ git commit -m "feat: add agent management and repo/issues API routes"
 
 ---
 
-### Task 20: Agents UI Page
+### Task 20: Agents UI Page [COMPLETED]
 
 **Files:**
 - Create: `src/app/agents/page.tsx`
@@ -2919,7 +2919,7 @@ git commit -m "feat: add agent management page with repo selector, issues, and t
 
 ## Phase 7: Code Reviews Feature
 
-### Task 21: Review API Routes
+### Task 21: Review API Routes [COMPLETED]
 
 **Files:**
 - Create: `src/app/api/reviews/start/route.ts`
@@ -2928,9 +2928,9 @@ git commit -m "feat: add agent management page with repo selector, issues, and t
 
 **Step 1:** Create review API routes:
 
-- `POST /api/reviews/start` — Start a code review. Fetches code via Octokit, queries ChromaDB for review instructions, invokes Copilot SDK with `buildReviewPrompt`, returns structured findings.
-- `POST /api/reviews/audit` — Start a best practices audit. Fetches repo tree via Octokit, queries ChromaDB for best practices docs, invokes Copilot SDK with `buildAuditPrompt`, returns compliance results.
-- `GET /api/reviews/[reportId]` — Get a stored report.
+- `POST /api/reviews/start` -- Start a code review. Fetches code via Octokit, queries ChromaDB for review instructions, invokes Copilot SDK with `buildReviewPrompt`, returns structured findings.
+- `POST /api/reviews/audit` -- Start a best practices audit. Fetches repo tree via Octokit, queries ChromaDB for best practices docs, invokes Copilot SDK with `buildAuditPrompt`, returns compliance results.
+- `GET /api/reviews/[reportId]` -- Get a stored report.
 
 **Step 2: Commit**
 
@@ -2941,7 +2941,7 @@ git commit -m "feat: add code review and audit API routes"
 
 ---
 
-### Task 22: Reviews UI Page
+### Task 22: Reviews UI Page [COMPLETED]
 
 **Files:**
 - Create: `src/app/reviews/page.tsx`
@@ -2965,7 +2965,7 @@ git commit -m "feat: add reviews page with code review and best practices audit 
 
 ## Phase 8: Settings & Polish
 
-### Task 23: Settings Page
+### Task 23: Settings Page [COMPLETED]
 
 **Files:**
 - Create: `src/app/settings/page.tsx`
@@ -2981,7 +2981,7 @@ git commit -m "feat: add settings page with connection status"
 
 ---
 
-### Task 24: Challenge Deliverables
+### Task 24: Challenge Deliverables [COMPLETED]
 
 **Files:**
 - Create: `AGENTS.md`
@@ -3032,7 +3032,7 @@ git commit -m "feat: add challenge deliverables (AGENTS.md, docs, CI/CD, RAI)"
 
 ## Phase 9: Testing
 
-### Task 25: Unit Tests for Core Libraries
+### Task 25: Unit Tests for Core Libraries [COMPLETED]
 
 **Files:**
 - Create: `src/__tests__/lib/chromadb/chunker.test.ts`
@@ -3056,7 +3056,7 @@ git commit -m "test: add unit tests for chunker, prompts, and agent store"
 
 ---
 
-### Task 26: Integration Verification
+### Task 26: Integration Verification [COMPLETED]
 
 **Step 1:** Start Docker Compose
 
@@ -3086,13 +3086,13 @@ Expected: `{"success":true,"indexed":N}` where N > 0
 
 ---
 
-## Phase 5: UI Modernization
+## Phase 10: UI Modernization
 
-### Task 27: Modernize UI per Style Guide
+### Task 27: Modernize UI per Style Guide [COMPLETED]
 
-**Style Guide:** `docs/frontend_ux_ui_style_guide.md` — the single source of truth for all visual decisions. Every step below references specific sections of the style guide.
+**Style Guide:** `docs/frontend-ux-ui-style-guide.md` -- the single source of truth for all visual decisions. Every step below references specific sections of the style guide.
 
-**Design Reference:** Soligence Presents V4 — clean, professional, indigo-accented, dark-first developer tool aesthetic. No glassmorphism, no gradient text on body copy, no flashy effects. Elegant through restraint.
+**Design Reference:** Soligence Presents V4 -- clean, professional, indigo-accented, dark-first developer tool aesthetic. No glassmorphism, no gradient text on body copy, no flashy effects. Elegant through restraint.
 
 **Dependencies to Install:**
 
@@ -3101,23 +3101,23 @@ cd src
 npm install next-themes
 ```
 
-Note: `next-themes` may already be installed. No other new dependencies needed — the design uses Tailwind utilities and CSS custom properties only. Animations use Tailwind keyframes, not Framer Motion.
+Note: `next-themes` may already be installed. No other new dependencies needed -- the design uses Tailwind utilities and CSS custom properties only. Animations use Tailwind keyframes, not Framer Motion.
 
 **Files to Modify/Create:**
 
-- Modify: `src/app/globals.css` — Replace theme with style guide color system (Section 2)
-- Modify: `src/app/layout.tsx` — Add ThemeProvider with dark default (Section 9)
-- Modify: `src/tailwind.config.ts` or `src/postcss.config.mjs` — Add brand colors, keyframes (Section 2.2, 7.1)
-- Create: `src/components/layout/theme-toggle.tsx` — Sun/moon toggle (Section 9.2)
-- Modify: `src/components/layout/header.tsx` — Sticky header per Section 6.1
-- Modify: `src/components/layout/sidebar.tsx` — Collapsible sidebar per Section 6.2
-- Modify: `src/components/layout/nav-item.tsx` — Active/hover states per Section 6.3
-- Modify: `src/app/page.tsx` — Dashboard with metric tiles and card grid per Sections 4.3, 5.6
-- Modify: `src/app/scaffold/page.tsx` — Consistent cards and buttons per Sections 5.1, 5.2
-- Modify: `src/app/agents/page.tsx` — Status badges per Section 5.3
-- Modify: `src/app/reviews/page.tsx` — Findings with severity badges per Section 5.3
-- Modify: `src/app/knowledge/page.tsx` — Document list with category styling
-- Modify: `src/app/settings/page.tsx` — Connection status indicators
+- Modify: `src/app/globals.css` -- Replace theme with style guide color system (Section 2)
+- Modify: `src/app/layout.tsx` -- Add ThemeProvider with dark default (Section 9)
+- Modify: `src/tailwind.config.ts` or `src/postcss.config.mjs` -- Add brand colors, keyframes (Section 2.2, 7.1)
+- Create: `src/components/layout/theme-toggle.tsx` -- Sun/moon toggle (Section 9.2)
+- Modify: `src/components/layout/header.tsx` -- Sticky header per Section 6.1
+- Modify: `src/components/layout/sidebar.tsx` -- Collapsible sidebar per Section 6.2
+- Modify: `src/components/layout/nav-item.tsx` -- Active/hover states per Section 6.3
+- Modify: `src/app/page.tsx` -- Dashboard with metric tiles and card grid per Sections 4.3, 5.6
+- Modify: `src/app/scaffold/page.tsx` -- Consistent cards and buttons per Sections 5.1, 5.2
+- Modify: `src/app/agents/page.tsx` -- Status badges per Section 5.3
+- Modify: `src/app/reviews/page.tsx` -- Findings with severity badges per Section 5.3
+- Modify: `src/app/knowledge/page.tsx` -- Document list with category styling
+- Modify: `src/app/settings/page.tsx` -- Connection status indicators
 
 ---
 
@@ -3256,9 +3256,9 @@ Create `src/components/layout/theme-toggle.tsx`:
 
 Update `src/components/layout/header.tsx`:
 - `sticky top-0 z-50 h-14 bg-background border-b`
-- Logo: `text-lg font-bold` — plain text, no gradients
+- Logo: `text-lg font-bold` -- plain text, no gradients
 - Right side: theme toggle + user info/sign-in
-- No backdrop-blur, no transparency — solid background
+- No backdrop-blur, no transparency -- solid background
 
 **Step 6: Modernize sidebar (Section 6.2)**
 
@@ -3336,8 +3336,8 @@ Visual verification checklist:
 - [ ] Dashboard metric tiles display cleanly in 4-column grid
 - [ ] Sidebar collapses and expands smoothly
 - [ ] All pages have `animate-fade-in` entrance
-- [ ] No hardcoded colors — all use CSS custom properties
-- [ ] Mobile responsive — sidebar hidden, grids collapse
+- [ ] No hardcoded colors -- all use CSS custom properties
+- [ ] Mobile responsive -- sidebar hidden, grids collapse
 
 **Step 10: Commit**
 
@@ -3345,6 +3345,50 @@ Visual verification checklist:
 git add src/
 git commit -m "feat: modernize UI with indigo theme, dark mode, and consistent design system"
 ```
+
+---
+
+### Task 28: Review and Refine Page Flows [NOT STARTED]
+
+**Goal:** Ensure every feature page has a logical, consistent user flow. Currently the pages work in isolation but the UX flow between them is inconsistent — some pages assume repo context, others don't. This task reviews each page and adds missing flow elements.
+
+**Key Issues to Address:**
+
+1. **Global Repo Selector** — Every action page (Scaffold, Agents, Reviews) should have a consistent repo selector dropdown so the user can pick which repository to work with. Currently only the Agents page has a repo selector. The Dashboard, Reviews, and Knowledge pages lack this context.
+
+2. **Knowledge Base Document Templates** — When a user clicks "+ Add Document" and selects a category, the Content editor should pre-populate with a category-specific template. Each category (best-practices, scaffolding, review-instructions, agent-instructions, architecture-patterns, ci-cd, responsible-ai) should have a defined template structure so all documents within a category follow a consistent format.
+
+3. **Dashboard Flow** — The dashboard should reflect the selected repo context. Metric tiles should show data relevant to the selected repo (active agents, recent reviews, etc.), not global totals.
+
+4. **Scaffold Page Flow** — After selecting a repo context or starting fresh, the scaffold flow should be clear: describe → review plan → confirm → see result with link.
+
+5. **Agents Page Flow** — Already has a repo selector but should integrate with a global repo context if one exists from the dashboard or another page.
+
+6. **Reviews Page Flow** — The Code Review and Audit tabs should have a repo selector (currently the Audit tab has a text input for "owner/repo" — should be a dropdown consistent with the Agents page).
+
+7. **Knowledge Base Page Flow** — Add category-specific content templates when creating new documents. Template structure per category:
+   - **best-practices:** Title, Scope, Rules (numbered), Examples, Anti-patterns
+   - **scaffolding:** Template Name, Language/Framework, Files to Generate, Configuration Options, Dependencies
+   - **review-instructions:** Review Type, Focus Areas, Severity Criteria, Examples of Issues
+   - **agent-instructions:** Agent Type, Capabilities, Constraints, Input Format, Output Format
+   - **architecture-patterns:** Pattern Name, Problem, Solution, Trade-offs, When to Use
+   - **ci-cd:** Pipeline Name, Triggers, Steps, Environment Variables, Secrets
+   - **responsible-ai:** Principle, Description, Implementation Guidelines, Monitoring
+
+**Files to Modify:**
+- Create: `src/components/shared/repo-selector-global.tsx` — Shared repo selector component
+- Create: `src/lib/knowledge-templates.ts` — Category template definitions
+- Modify: `src/app/page.tsx` — Add repo context to dashboard
+- Modify: `src/app/reviews/page.tsx` — Replace text input with repo selector dropdown
+- Modify: `src/app/knowledge/page.tsx` — Wire up templates to document editor
+- Modify: `src/components/knowledge/document-editor.tsx` — Pre-populate content based on selected category
+- Modify: `src/app/layout.tsx` or create context — Shared repo state across pages
+
+**Verification:**
+- Each page has a consistent repo selector or inherits from global context
+- Knowledge base document editor pre-populates templates per category
+- User can navigate between pages without losing repo context
+- All existing functionality still works (no regressions)
 
 ---
 
@@ -3361,6 +3405,7 @@ git commit -m "feat: modernize UI with indigo theme, dark mode, and consistent d
 | 7 | 21-22 | Code reviews (API, UI) |
 | 8 | 23-24 | Settings, challenge deliverables |
 | 9 | 25-26 | Testing and integration verification |
-| 10 | 27 | UI modernization (glassmorphism, dark theme, bento grid, animations) |
+| 10 | 27 | UI modernization (dark theme, design system, animations) |
+| 11 | 28 | Review and refine page flows (repo selector, knowledge templates) |
 
-**Total: 27 tasks across 10 phases**
+**Total: 28 tasks across 11 phases**

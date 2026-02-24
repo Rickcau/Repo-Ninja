@@ -68,7 +68,7 @@ export default function AgentsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Agent Management</h1>
-        <p className="text-muted-foreground">
+        <p className="text-sm text-muted-foreground mt-1">
           Assign AI agents to solve issues or write code in your repositories.
         </p>
       </div>

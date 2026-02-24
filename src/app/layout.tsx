@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthSessionProvider } from "@/components/layout/session-provider";
+import { ThemeProvider } from "@/components/theme-provider";
 import { Header } from "@/components/layout/header";
 import { Sidebar } from "@/components/layout/sidebar";
 
@@ -26,17 +27,26 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <AuthSessionProvider>
-          <Header />
-          <div className="flex">
-            <Sidebar />
-            <main className="flex-1 p-6">{children}</main>
-          </div>
-        </AuthSessionProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="dark"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <AuthSessionProvider>
+            <Header />
+            <div className="flex">
+              <Sidebar />
+              <main className="flex-1 px-4 py-8 sm:px-6 lg:px-8 animate-fade-in">
+                <div className="mx-auto max-w-7xl">{children}</div>
+              </main>
+            </div>
+          </AuthSessionProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

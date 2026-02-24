@@ -16,8 +16,8 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="w-56 border-r bg-background min-h-[calc(100vh-3.5rem)]">
-      <nav className="flex flex-col gap-1 p-2">
+    <aside className="w-60 border-r bg-background min-h-[calc(100vh-3.5rem)]">
+      <nav className="flex flex-col gap-1 p-3">
         {navItems.map((item) => (
           <NavItem
             key={item.href}
