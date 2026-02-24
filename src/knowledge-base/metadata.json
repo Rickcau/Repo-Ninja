@@ -1,0 +1,13 @@
+{
+  "version": "1.0",
+  "description": "Repo-Ninja default knowledge base",
+  "categories": {
+    "best-practices": { "label": "Best Practices", "description": "Coding standards and patterns" },
+    "scaffolding": { "label": "Scaffolding", "description": "Repo templates and structure guides" },
+    "review-instructions": { "label": "Review Instructions", "description": "Code review checklists" },
+    "agent-instructions": { "label": "Agent Instructions", "description": "Agent behavior guidelines" },
+    "architecture-patterns": { "label": "Architecture Patterns", "description": "System design guidance" },
+    "ci-cd": { "label": "CI/CD", "description": "Pipeline and deployment templates" },
+    "responsible-ai": { "label": "Responsible AI", "description": "RAI guidelines and safety" }
+  }
+}
