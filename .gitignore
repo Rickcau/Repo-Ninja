@@ -1,6 +1,7 @@
 # Internal docs (not for public repo)
 internal-docs/
 .placeholders/
+2026-02-23-repo-ninja-implementation-v1.md
 
 # Dependencies
 src/node_modules/
@@ -39,6 +40,9 @@ chroma-data/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Claude Code
+CLAUDE.md
 
 # Misc
 *.pem

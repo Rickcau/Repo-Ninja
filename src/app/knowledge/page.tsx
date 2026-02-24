@@ -59,7 +59,10 @@ export default function KnowledgePage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Knowledge Base</h1>
+        <div>
+          <h1 className="text-2xl font-bold">Knowledge Base</h1>
+          <p className="text-sm text-muted-foreground mt-1">Manage documents that power AI agents and code reviews.</p>
+        </div>
         <Button onClick={() => setEditing({ isNew: true })}>
           <Plus className="h-4 w-4 mr-2" />
           Add Document

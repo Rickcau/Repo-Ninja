@@ -81,7 +81,10 @@ function ReviewsContent() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Code Reviews</h1>
+      <div>
+        <h1 className="text-2xl font-bold">Code Reviews</h1>
+        <p className="text-sm text-muted-foreground mt-1">Run AI-powered code reviews and best practices audits.</p>
+      </div>
 
       <Tabs defaultValue={defaultTab}>
         <TabsList>
@@ -94,7 +97,7 @@ function ReviewsContent() {
           <ReviewForm onSubmit={handleReview} isLoading={isReviewing} />
 
           {reviewError && (
-            <div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
+            <div className="rounded-md border border-rose-500/20 bg-rose-500/10 p-4 text-sm text-rose-600 dark:text-rose-400">
               {reviewError}
             </div>
           )}
@@ -131,7 +134,7 @@ function ReviewsContent() {
           </Card>
 
           {auditError && (
-            <div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
+            <div className="rounded-md border border-rose-500/20 bg-rose-500/10 p-4 text-sm text-rose-600 dark:text-rose-400">
               {auditError}
             </div>
           )}
