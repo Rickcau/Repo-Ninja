@@ -11,7 +11,7 @@
 
 ## Current Session State
 
-**Last Updated:** 2026-02-23 (end of Session 3)
+**Last Updated:** 2026-02-23 (end of Session 4)
 **Current Phase:** Task 27 COMPLETED, Task 28 NOT STARTED
 **Current Branch:** `main` (clean working tree, synced with remote)
 **Next Action:** Start Task 28 — Page Flow Refinement
@@ -157,6 +157,16 @@
 - Rewrote entire git history to remove all Co-Authored-By: Claude lines (`git filter-branch`)
 - Force pushed cleaned history to remote
 - Session closed on `main` branch, clean working tree
+
+### Session 4 (2026-02-23) — Git Hygiene & WSL/Windows Compatibility
+- Updated SESSION-TRACKER.md with final Session 3 state, committed and pushed
+- Updated `.gitattributes` to enforce `eol=lf` for all source files (prevents CRLF/LF drift between WSL and Windows Git)
+- Investigated VS Code showing 132 modified files on clean `main` branch
+- Root cause: file permission mismatch (`100755` vs `100644`) — WSL commits files as executable, Windows Git sees them as normal
+- Fix: set `core.fileMode false` in both Windows Git and WSL Git repo config
+- Ran `git rm --cached -r . && git reset --hard` to re-checkout all files cleanly
+- Confirmed both Windows Git and WSL Git show clean working tree
+- Session closed on `main` branch, clean working tree, synced with remote
 
 ---
 
