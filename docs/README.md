@@ -29,50 +29,92 @@ Describe a coding task in free-form text, specify a target branch, and let a Cop
 
 - **Node.js 20+** (LTS recommended)
 - **Docker** and **Docker Compose** (for ChromaDB sidecar)
-- **GitHub OAuth App** (create one at [github.com/settings/developers](https://github.com/settings/developers))
-  - Callback URL: `http://localhost:3000/api/auth/callback/github`
-  - Scopes needed: `repo`, `read:user`, `read:org`
-- **GitHub Copilot SDK API Key**
+- **A GitHub account** (any GitHub account works — personal, organization, or enterprise)
 
 ## Setup Instructions
 
-### 1. Clone the repository
+### Step 1: Register a GitHub OAuth App
+
+Repo-Ninja uses GitHub OAuth so that users can sign in with their GitHub account. Before running the app, you need to register it as an OAuth App with GitHub. This is a one-time setup step — it tells GitHub "this application exists and is allowed to request sign-in from users."
+
+**Why is this needed?** When a user clicks "Sign in with GitHub" in Repo-Ninja, GitHub needs to know which application is making the request. The Client ID and Client Secret you get from this step are like an API key for your app — they identify the *application*, not any specific user. Any GitHub user can sign in through your app once it's registered.
+
+**How to do it:**
+
+1. Go to [github.com/settings/developers](https://github.com/settings/developers)
+2. Click **"OAuth Apps"** in the left sidebar
+3. Click **"New OAuth App"**
+4. Fill in the form:
+
+   | Field | Value |
+   |-------|-------|
+   | **Application name** | `Repo-Ninja` (or any name you like) |
+   | **Homepage URL** | `http://localhost:3000` |
+   | **Application description** | (optional) AI-powered command center for GitHub development |
+   | **Authorization callback URL** | `http://localhost:3000/api/auth/callback/github` |
+
+5. Click **"Register application"**
+6. On the next page, you'll see your **Client ID** — copy it
+7. Click **"Generate a new client secret"** — copy the secret immediately (you won't see it again)
+
+> **Deploying to Azure?** When you deploy to a public URL, come back to this page and update the **Homepage URL** and **Authorization callback URL** to your Azure URL (e.g., `https://repo-ninja.azurewebsites.net` and `https://repo-ninja.azurewebsites.net/api/auth/callback/github`).
+
+> **Important:** Do NOT enable "Device Flow" — that is for CLI tools. Repo-Ninja uses the standard web browser redirect flow.
+
+### Step 2: Clone the repository
 
 ```bash
 git clone https://github.com/rickcau/Repo-Ninja.git
 cd Repo-Ninja
 ```
 
-### 2. Configure environment variables
+### Step 3: Configure environment variables
 
 ```bash
 cp .env.example .env.local
 ```
 
-Edit `.env.local` and fill in:
+Open `.env.local` in a text editor and fill in the values:
 
-| Variable | Description |
-|----------|-------------|
-| `GITHUB_CLIENT_ID` | GitHub OAuth App client ID |
-| `GITHUB_CLIENT_SECRET` | GitHub OAuth App client secret |
-| `NEXTAUTH_SECRET` | Random string for session encryption (use `openssl rand -base64 32`) |
-| `NEXTAUTH_URL` | `http://localhost:3000` |
-| `CHROMADB_URL` | `http://localhost:8000` (default for Docker Compose) |
-| `GITHUB_COPILOT_API_KEY` | Copilot SDK API key |
+```bash
+# Paste the Client ID and Client Secret from Step 1
+GITHUB_CLIENT_ID=your-client-id-from-step-1
+GITHUB_CLIENT_SECRET=your-client-secret-from-step-1
 
-### 3. Start the application
+# Session encryption key — generate one by running:
+#   openssl rand -base64 32
+# or use any random 32+ character string
+NEXTAUTH_SECRET=paste-your-generated-secret-here
+
+# Leave these as-is for local development
+NEXTAUTH_URL=http://localhost:3000
+CHROMADB_URL=http://localhost:8000
+```
+
+| Variable | What it is | Where to get it |
+|----------|-----------|-----------------|
+| `GITHUB_CLIENT_ID` | Identifies your app to GitHub | Step 1 above |
+| `GITHUB_CLIENT_SECRET` | Proves your app's identity to GitHub | Step 1 above |
+| `NEXTAUTH_SECRET` | Encrypts user sessions (random string) | Run `openssl rand -base64 32` |
+| `NEXTAUTH_URL` | Your app's URL | `http://localhost:3000` for local dev |
+| `CHROMADB_URL` | Where ChromaDB is running | `http://localhost:8000` (default) |
+
+### Step 4: Start the application
 
 ```bash
 docker-compose up
 ```
 
-This starts:
-- **Next.js app** on port 3000
-- **ChromaDB** on port 8000
+This starts two services:
+- **Repo-Ninja web app** on [http://localhost:3000](http://localhost:3000)
+- **ChromaDB** (knowledge base search engine) on port 8000
 
-### 4. Open the application
+### Step 5: Sign in and use
 
-Navigate to [http://localhost:3000](http://localhost:3000) and sign in with GitHub.
+1. Open [http://localhost:3000](http://localhost:3000) in your browser
+2. Click **"Sign in with GitHub"**
+3. GitHub will ask you to authorize the Repo-Ninja app — click **"Authorize"**
+4. You're in! Any GitHub user can sign in this way.
 
 ### Alternative: Run without Docker
 
@@ -112,10 +154,19 @@ Repo-Ninja is designed with responsible AI principles. See [RAI.md](RAI.md) for 
 Use `docker-compose up` for a one-command setup.
 
 ### Azure Deployment
-- **Azure App Service** for the Next.js application
-- **Azure Container Apps** for ChromaDB (or swap to Azure AI Search)
-- **Azure Key Vault** for secrets management
-- Optional: **Foundry IQ** integration via the KnowledgeStore interface
+
+1. **Deploy the app** to Azure App Service (or Azure Container Apps)
+2. **Deploy ChromaDB** to Azure Container Apps (or swap to Azure AI Search via the KnowledgeStore interface)
+3. **Set environment variables** in Azure App Service Configuration:
+   - `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` — same values from your GitHub OAuth App
+   - `NEXTAUTH_SECRET` — same session encryption key
+   - `NEXTAUTH_URL` — your Azure URL (e.g., `https://repo-ninja.azurewebsites.net`)
+   - `CHROMADB_URL` — your ChromaDB container URL
+4. **Update your GitHub OAuth App** at [github.com/settings/developers](https://github.com/settings/developers):
+   - Change **Homepage URL** to your Azure URL
+   - Change **Authorization callback URL** to `https://your-app.azurewebsites.net/api/auth/callback/github`
+5. Optional: Use **Azure Key Vault** for secrets management
+6. Optional: **Foundry IQ** integration via the KnowledgeStore interface
 
 ## License
 
