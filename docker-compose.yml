@@ -21,11 +21,11 @@ services:
     volumes:
       - chroma-data:/data
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v2/healthcheck"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/8000'"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
 
 volumes:
   chroma-data:

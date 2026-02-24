@@ -95,9 +95,10 @@ Open `.env.local` in a text editor and fill in the values:
 GITHUB_CLIENT_ID=your-client-id-from-step-1
 GITHUB_CLIENT_SECRET=your-client-secret-from-step-1
 
-# Session encryption key — generate one by running:
+# Session encryption key — generate one by running ONE of these commands:
+#   node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 #   openssl rand -base64 32
-# or use any random 32+ character string
+# Do NOT use a plain text phrase — use a generated random value
 NEXTAUTH_SECRET=paste-your-generated-secret-here
 
 # Leave these as-is for local development
@@ -109,7 +110,7 @@ CHROMADB_URL=http://localhost:8000
 |----------|-----------|-----------------|
 | `GITHUB_CLIENT_ID` | Identifies your app to GitHub | Step 1 above |
 | `GITHUB_CLIENT_SECRET` | Proves your app's identity to GitHub | Step 1 above |
-| `NEXTAUTH_SECRET` | Encrypts user sessions (random string) | Run `openssl rand -base64 32` |
+| `NEXTAUTH_SECRET` | Encrypts user sessions (random value) | Run `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"` |
 | `NEXTAUTH_URL` | Your app's URL | `http://localhost:3000` for local dev |
 | `CHROMADB_URL` | Where ChromaDB is running | `http://localhost:8000` (default) |
 
@@ -117,6 +118,17 @@ CHROMADB_URL=http://localhost:8000
 
 **Make sure Docker Desktop is running first.** You should see the Docker whale icon in your system tray (Windows) or menu bar (Mac). If it's not running, open Docker Desktop from your Start menu / Applications and wait for it to fully start.
 
+**Windows (PowerShell):**
+```powershell
+.\start.ps1
+```
+
+**Mac/Linux:**
+```bash
+./start.sh
+```
+
+**Or run directly:**
 ```bash
 docker-compose up -d
 ```
@@ -167,6 +179,17 @@ Then fill in the values as described in [Step 3](#step-3-configure-environment-v
 - Wait 30-60 seconds — the app takes time to build on first start
 - Check the logs: `docker-compose logs app`
 - Make sure port 3000 isn't already in use by another application
+
+### Changes to `.env.local` aren't taking effect
+
+Docker Compose reads the env file when containers start, not when they're already running. After editing `.env.local`, you must restart:
+
+```bash
+docker-compose down
+docker-compose up -d
+```
+
+You do **not** need `--build` — env vars are injected at runtime.
 
 ### "Sign in with GitHub" shows an error
 

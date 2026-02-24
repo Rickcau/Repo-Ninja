@@ -1,5 +1,6 @@
 # Internal docs (not for public repo)
 internal-docs/
+.placeholders/
 
 # Dependencies
 src/node_modules/

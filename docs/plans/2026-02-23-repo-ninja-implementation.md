@@ -3084,6 +3084,270 @@ Expected: `{"success":true,"indexed":N}` where N > 0
 
 ---
 
+---
+
+## Phase 5: UI Modernization
+
+### Task 27: Modernize UI per Style Guide
+
+**Style Guide:** `docs/frontend_ux_ui_style_guide.md` — the single source of truth for all visual decisions. Every step below references specific sections of the style guide.
+
+**Design Reference:** Soligence Presents V4 — clean, professional, indigo-accented, dark-first developer tool aesthetic. No glassmorphism, no gradient text on body copy, no flashy effects. Elegant through restraint.
+
+**Dependencies to Install:**
+
+```bash
+cd src
+npm install next-themes
+```
+
+Note: `next-themes` may already be installed. No other new dependencies needed — the design uses Tailwind utilities and CSS custom properties only. Animations use Tailwind keyframes, not Framer Motion.
+
+**Files to Modify/Create:**
+
+- Modify: `src/app/globals.css` — Replace theme with style guide color system (Section 2)
+- Modify: `src/app/layout.tsx` — Add ThemeProvider with dark default (Section 9)
+- Modify: `src/tailwind.config.ts` or `src/postcss.config.mjs` — Add brand colors, keyframes (Section 2.2, 7.1)
+- Create: `src/components/layout/theme-toggle.tsx` — Sun/moon toggle (Section 9.2)
+- Modify: `src/components/layout/header.tsx` — Sticky header per Section 6.1
+- Modify: `src/components/layout/sidebar.tsx` — Collapsible sidebar per Section 6.2
+- Modify: `src/components/layout/nav-item.tsx` — Active/hover states per Section 6.3
+- Modify: `src/app/page.tsx` — Dashboard with metric tiles and card grid per Sections 4.3, 5.6
+- Modify: `src/app/scaffold/page.tsx` — Consistent cards and buttons per Sections 5.1, 5.2
+- Modify: `src/app/agents/page.tsx` — Status badges per Section 5.3
+- Modify: `src/app/reviews/page.tsx` — Findings with severity badges per Section 5.3
+- Modify: `src/app/knowledge/page.tsx` — Document list with category styling
+- Modify: `src/app/settings/page.tsx` — Connection status indicators
+
+---
+
+**Step 1: Update CSS theme system (`src/app/globals.css`)**
+
+Replace the existing theme with the style guide color system (Section 2.1). Use the exact HSL values from the guide:
+
+```css
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 243 75% 59%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 243 75% 59%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 243 75% 59%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 243 75% 59%;
+  }
+}
+
+@layer base {
+  * {
+    border-color: hsl(var(--border));
+  }
+
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-feature-settings: "rlig" 1, "calt" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+```
+
+**Step 2: Add brand colors and animations to Tailwind config**
+
+Add the brand indigo scale (Section 2.2) and entrance animations (Section 7.1) to the Tailwind configuration. The brand colors extend the default palette:
+
+```typescript
+// Add to theme.extend
+colors: {
+  brand: {
+    50: '#eef2ff',
+    100: '#e0e7ff',
+    200: '#c7d2fe',
+    300: '#a5b4fc',
+    400: '#818cf8',
+    500: '#6366f1',
+    600: '#4f46e5',
+    700: '#4338ca',
+    800: '#3730a3',
+    900: '#312e81',
+  },
+},
+fontFamily: {
+  sans: ['system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', 'sans-serif'],
+},
+keyframes: {
+  'fade-in': {
+    '0%': { opacity: '0', transform: 'translateY(10px)' },
+    '100%': { opacity: '1', transform: 'translateY(0)' },
+  },
+  'slide-up': {
+    '0%': { opacity: '0', transform: 'translateY(20px)' },
+    '100%': { opacity: '1', transform: 'translateY(0)' },
+  },
+},
+animation: {
+  'fade-in': 'fade-in 0.5s ease-out',
+  'slide-up': 'slide-up 0.6s ease-out',
+},
+```
+
+**Step 3: Add ThemeProvider to layout**
+
+Update `src/app/layout.tsx`:
+- Wrap with `ThemeProvider` from `next-themes` with `attribute="class"` and `defaultTheme="dark"`
+- Use system font stack (Section 3.1)
+- Add `suppressHydrationWarning` to `<html>` tag
+
+**Step 4: Create theme toggle component**
+
+Create `src/components/layout/theme-toggle.tsx`:
+- Sun icon (light) / Moon icon (dark) from lucide-react
+- Uses `useTheme()` from `next-themes`
+- Styled as icon button per Section 5.2: `rounded-md p-2 hover:bg-accent transition-colors`
+
+**Step 5: Modernize header (Section 6.1)**
+
+Update `src/components/layout/header.tsx`:
+- `sticky top-0 z-50 h-14 bg-background border-b`
+- Logo: `text-lg font-bold` — plain text, no gradients
+- Right side: theme toggle + user info/sign-in
+- No backdrop-blur, no transparency — solid background
+
+**Step 6: Modernize sidebar (Section 6.2)**
+
+Update `src/components/layout/sidebar.tsx`:
+- Width: `w-60` expanded, `w-16` collapsed
+- `bg-background border-r`
+- Collapse/expand toggle button at bottom
+- `transition-all duration-300` for collapse animation
+- When collapsed: icons only, tooltips on hover for labels
+- Nav items styled per Section 6.3
+
+**Step 7: Modernize dashboard (Sections 4.3, 5.6, 5.3)**
+
+Update `src/app/page.tsx`:
+- Page wrapper: `mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 animate-fade-in`
+- Page title: `text-2xl font-bold` with `text-sm text-muted-foreground` subtitle
+- Metric tiles in `grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4`:
+  - Each tile: `rounded-lg border bg-card p-4` with icon + label + large number
+- Quick action cards in `grid grid-cols-1 md:grid-cols-3 gap-4`:
+  - `rounded-lg border bg-card p-6 hover:border-primary/50 transition-colors`
+- Active agents table with translucent status badges (Section 5.3):
+  - Running: `bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-500/20`
+  - Completed: `bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20`
+  - Queued: `bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20`
+  - Failed: `bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20`
+
+**Step 8: Modernize all feature pages**
+
+Apply style guide patterns consistently across all pages:
+
+**Scaffold page (`src/app/scaffold/page.tsx` + components):**
+- Cards: `rounded-lg border bg-card p-6` (Section 5.1)
+- Primary buttons: `bg-primary text-primary-foreground hover:bg-primary/90` (Section 5.2)
+- Form inputs: style guide Section 5.4 pattern
+- Tab interface: clean borders, active tab uses primary color
+
+**Agents page (`src/app/agents/page.tsx` + components):**
+- Task list table: Section 5.5 table pattern with hover rows
+- Status badges: Section 5.3 translucent pattern
+- Repo selector: styled select with Section 5.4 input pattern
+- Empty state: Section 13 empty state pattern
+
+**Reviews page (`src/app/reviews/page.tsx` + components):**
+- Finding cards: severity badges using Section 5.3 status colors
+- Score display: large number in `text-2xl font-bold`
+- Category scores: simple progress indicators
+- Tabs: clean, minimal tab interface
+
+**Knowledge page (`src/app/knowledge/page.tsx` + components):**
+- Document list: table pattern (Section 5.5)
+- Category badges: use brand color variants
+- Editor: textarea with Section 5.4 input styling
+- Reindex button: secondary button pattern
+
+**Settings page (`src/app/settings/page.tsx`):**
+- Connection cards: `rounded-lg border bg-card p-6`
+- Connected: emerald status badge
+- Disconnected: rose status badge
+- Info display: `text-sm text-muted-foreground` for labels
+
+**Step 9: Verify**
+
+```bash
+cd src && npm run build
+```
+
+Expected: Build completes without errors. All pages render correctly in both dark and light mode.
+
+Visual verification checklist:
+- [ ] Dark mode is default on first load
+- [ ] Theme toggle switches between dark and light
+- [ ] Indigo primary color visible on buttons and active states
+- [ ] Status badges use translucent semantic colors
+- [ ] Cards have consistent border and padding
+- [ ] Dashboard metric tiles display cleanly in 4-column grid
+- [ ] Sidebar collapses and expands smoothly
+- [ ] All pages have `animate-fade-in` entrance
+- [ ] No hardcoded colors — all use CSS custom properties
+- [ ] Mobile responsive — sidebar hidden, grids collapse
+
+**Step 10: Commit**
+
+```bash
+git add src/
+git commit -m "feat: modernize UI with indigo theme, dark mode, and consistent design system"
+```
+
+---
+
 ## Summary
 
 | Phase | Tasks | Description |
@@ -3097,5 +3361,6 @@ Expected: `{"success":true,"indexed":N}` where N > 0
 | 7 | 21-22 | Code reviews (API, UI) |
 | 8 | 23-24 | Settings, challenge deliverables |
 | 9 | 25-26 | Testing and integration verification |
+| 10 | 27 | UI modernization (glassmorphism, dark theme, bento grid, animations) |
 
-**Total: 26 tasks across 9 phases**
+**Total: 27 tasks across 10 phases**
