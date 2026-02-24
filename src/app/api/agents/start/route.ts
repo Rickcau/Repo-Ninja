@@ -86,7 +86,7 @@ export async function POST(request: Request) {
         ? buildIssueSolverPrompt(issueTitle, issueBody, repoContext, knowledgeDocs)
         : buildCodeWriterPrompt(description, repoContext, knowledgeDocs);
 
-    const response = await askCopilot(prompt);
+    const response = await askCopilot(session.accessToken, prompt);
 
     // Parse the response
     let parsed: {

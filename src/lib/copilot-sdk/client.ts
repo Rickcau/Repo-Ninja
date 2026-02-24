@@ -1,28 +1,22 @@
 import {
   CopilotClient,
-  CopilotSession,
   type AssistantMessageEvent,
 } from "@github/copilot-sdk";
 
-let client: CopilotClient | null = null;
-
 /**
- * Returns a singleton CopilotClient instance.
- * The client auto-starts when createSession is called.
+ * Creates a CopilotClient authenticated with the user's GitHub OAuth token.
+ * Each user gets their own client — no shared server-side token needed.
  */
-export function getCopilotClient(): CopilotClient {
-  if (!client) {
-    client = new CopilotClient();
-  }
-  return client;
+export function getCopilotClient(accessToken: string): CopilotClient {
+  return new CopilotClient({ githubToken: accessToken });
 }
 
 /**
  * Send a prompt to Copilot and wait for the full response.
- * Creates a one-shot session, sends the prompt, waits for idle, then destroys the session.
+ * Uses the authenticated user's token so each user's requests are scoped to their account.
  */
-export async function askCopilot(prompt: string): Promise<string> {
-  const copilot = getCopilotClient();
+export async function askCopilot(accessToken: string, prompt: string): Promise<string> {
+  const copilot = getCopilotClient(accessToken);
   const session = await copilot.createSession({ model: "gpt-4.1" });
 
   try {
@@ -31,23 +25,24 @@ export async function askCopilot(prompt: string): Promise<string> {
     return response?.data?.content ?? "";
   } finally {
     await session.destroy();
+    await copilot.stop();
   }
 }
 
 /**
  * Send a prompt to Copilot and stream the response chunks.
- * Calls onChunk for each assistant.message.delta event, then returns the full assembled text.
+ * Uses the authenticated user's token.
  */
 export async function streamCopilot(
+  accessToken: string,
   prompt: string,
   onChunk: (chunk: string) => void
 ): Promise<string> {
-  const copilot = getCopilotClient();
+  const copilot = getCopilotClient(accessToken);
   const session = await copilot.createSession({ model: "gpt-4.1" });
 
   let fullResponse = "";
 
-  // Subscribe to streaming delta events
   session.on("assistant.message.delta" as never, ((event: { data?: { content?: string } }) => {
     const text = event?.data?.content ?? "";
     if (text) {
@@ -56,9 +51,7 @@ export async function streamCopilot(
     }
   }) as never);
 
-  // Also capture the final assistant message in case deltas are not emitted
   session.on("assistant.message" as never, ((event: AssistantMessageEvent) => {
-    // If we got no deltas, use the final message content
     if (!fullResponse) {
       fullResponse = event?.data?.content ?? "";
     }
@@ -69,16 +62,6 @@ export async function streamCopilot(
     return fullResponse;
   } finally {
     await session.destroy();
-  }
-}
-
-/**
- * Shutdown the singleton client gracefully.
- * Call this during application shutdown.
- */
-export async function stopCopilotClient(): Promise<void> {
-  if (client) {
-    await client.stop();
-    client = null;
+    await copilot.stop();
   }
 }

@@ -75,7 +75,7 @@ export async function POST(request: Request) {
 
     // Invoke Copilot SDK
     const prompt = buildReviewPrompt(codeBlock, body.reviewTypes, knowledgeDocs);
-    const response = await askCopilot(prompt);
+    const response = await askCopilot(session.accessToken, prompt);
 
     // Parse JSON from response
     const jsonMatch = response.match(/\{[\s\S]*\}/);

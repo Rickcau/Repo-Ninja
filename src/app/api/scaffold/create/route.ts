@@ -32,7 +32,7 @@ For each file, return JSON array:
 
 Make the code production-ready following the best practices: ${plan.bestPracticesApplied.join(", ")}`;
 
-  const response = await askCopilot(filePrompt);
+  const response = await askCopilot(accessToken, filePrompt);
   const jsonMatch = response.match(/\[[\s\S]*\]/);
   const files = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
 

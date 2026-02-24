@@ -8,7 +8,7 @@ import type { ScaffoldRequest } from "@/lib/types";
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session?.accessToken) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = (await request.json()) as ScaffoldRequest;
 
@@ -31,7 +31,7 @@ export async function POST(request: Request) {
     body.description || searchQuery,
     knowledgeDocs
   );
-  const response = await askCopilot(prompt);
+  const response = await askCopilot(session.accessToken, prompt);
 
   // Parse JSON from response
   try {
