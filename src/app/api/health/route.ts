@@ -5,7 +5,7 @@ export async function GET() {
   let chromadbStatus = "unknown";
 
   try {
-    const res = await fetch(`${chromadbUrl}/api/v1/heartbeat`, { signal: AbortSignal.timeout(3000) });
+    const res = await fetch(`${chromadbUrl}/api/v2/healthcheck`, { signal: AbortSignal.timeout(3000) });
     chromadbStatus = res.ok ? "connected" : "error";
   } catch {
     chromadbStatus = "disconnected";

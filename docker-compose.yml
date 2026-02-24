@@ -19,12 +19,13 @@ services:
       - "8000:8000"
     restart: unless-stopped
     volumes:
-      - chroma-data:/chroma/chroma
+      - chroma-data:/data
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v2/healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
 volumes:
   chroma-data:
