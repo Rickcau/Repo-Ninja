@@ -11,10 +11,10 @@
 
 ## Current Session State
 
-**Last Updated:** 2026-02-23
+**Last Updated:** 2026-02-23 (end of Session 3)
 **Current Phase:** Task 27 COMPLETED, Task 28 NOT STARTED
-**Current Branch:** `feat/ui-modernization` (all changes uncommitted, ready to commit and merge)
-**Next Action:** Commit all changes, merge to main, then start Task 28
+**Current Branch:** `main` (clean working tree, synced with remote)
+**Next Action:** Start Task 28 — Page Flow Refinement
 
 ---
 
@@ -147,7 +147,16 @@
 - Renamed files to kebab-case: `frontend-ux-ui-style-guide.md`, added `-v1` suffix to original plan
 - Added Task 28 (page flow refinement) to both v1 and v2 implementation plans
 - Added [COMPLETED] / [NOT STARTED] status markers to all task headings in both plans
-- Committed all changes, merged to main, synced local and remote
+- Committed all changes, merged to main with `--no-ff`, synced local and remote
+- Created `CLAUDE.md` (gitignored) with comprehensive project rules:
+  - Git Workflow Rules (pre-flight branch check, no direct main commits, --no-ff merges)
+  - Git Commit Rules (no Co-Authored-By lines)
+  - What This Project Is (tech stack summary, key directories)
+  - Code Conventions (kebab-case, Tailwind v4 oklch, Shadcn UI, dark mode, Lucide icons)
+  - Session Persistence, Implementation Plans, Testing, Token Conservation, Docker Rules, No-Go Zones
+- Rewrote entire git history to remove all Co-Authored-By: Claude lines (`git filter-branch`)
+- Force pushed cleaned history to remote
+- Session closed on `main` branch, clean working tree
 
 ---
 
