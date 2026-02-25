@@ -115,12 +115,18 @@ export default function SettingsPage() {
                   {session.user.email && (
                     <p className="text-sm text-muted-foreground">{session.user.email}</p>
                   )}
-                  <Badge variant="default">Connected</Badge>
+                  <Badge variant="outline" className="gap-1.5 bg-emerald-500/[0.12] text-emerald-600 dark:text-emerald-400 border-emerald-500/20">
+                    <span className="inline-block h-1.5 w-1.5 rounded-full shrink-0 bg-emerald-500" />
+                    Connected
+                  </Badge>
                 </div>
               </div>
             ) : (
               <div className="space-y-2">
-                <Badge variant="destructive">Not Connected</Badge>
+                <Badge variant="outline" className="gap-1.5 bg-rose-500/[0.12] text-rose-600 dark:text-rose-400 border-rose-500/20">
+                  <span className="inline-block h-1.5 w-1.5 rounded-full shrink-0 bg-rose-500" />
+                  Not Connected
+                </Badge>
                 <p className="text-sm text-muted-foreground">
                   Sign in with GitHub to connect your account.
                 </p>
@@ -143,12 +149,27 @@ export default function SettingsPage() {
               <p className="text-sm text-muted-foreground">Checking connection...</p>
             ) : chromaError ? (
               <div className="space-y-2">
-                <Badge variant="destructive">Error</Badge>
+                <Badge variant="outline" className="gap-1.5 bg-rose-500/[0.12] text-rose-600 dark:text-rose-400 border-rose-500/20">
+                  <span className="inline-block h-1.5 w-1.5 rounded-full shrink-0 bg-rose-500" />
+                  Error
+                </Badge>
                 <p className="text-sm text-muted-foreground">{chromaError}</p>
               </div>
             ) : chromaStatus ? (
               <div className="space-y-2">
-                <Badge variant={chromaStatus.connected ? "default" : "destructive"}>
+                <Badge
+                  variant="outline"
+                  className={
+                    chromaStatus.connected
+                      ? "gap-1.5 bg-emerald-500/[0.12] text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                      : "gap-1.5 bg-rose-500/[0.12] text-rose-600 dark:text-rose-400 border-rose-500/20"
+                  }
+                >
+                  <span
+                    className={`inline-block h-1.5 w-1.5 rounded-full shrink-0 ${
+                      chromaStatus.connected ? "bg-emerald-500" : "bg-rose-500"
+                    }`}
+                  />
                   {chromaStatus.connected ? "Connected" : "Disconnected"}
                 </Badge>
                 {chromaStatus.connected && (
@@ -180,22 +201,47 @@ export default function SettingsPage() {
               <p className="text-sm text-muted-foreground">Checking health...</p>
             ) : healthError ? (
               <div className="space-y-2">
-                <Badge variant="destructive">Error</Badge>
+                <Badge variant="outline" className="gap-1.5 bg-rose-500/[0.12] text-rose-600 dark:text-rose-400 border-rose-500/20">
+                  <span className="inline-block h-1.5 w-1.5 rounded-full shrink-0 bg-rose-500" />
+                  Error
+                </Badge>
                 <p className="text-sm text-muted-foreground">{healthError}</p>
               </div>
             ) : health ? (
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium">API:</span>
-                  <Badge variant={health.status === "ok" ? "default" : "destructive"}>
+                  <Badge
+                    variant="outline"
+                    className={
+                      health.status === "ok"
+                        ? "gap-1.5 bg-emerald-500/[0.12] text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                        : "gap-1.5 bg-rose-500/[0.12] text-rose-600 dark:text-rose-400 border-rose-500/20"
+                    }
+                  >
+                    <span
+                      className={`inline-block h-1.5 w-1.5 rounded-full shrink-0 ${
+                        health.status === "ok" ? "bg-emerald-500" : "bg-rose-500"
+                      }`}
+                    />
                     {health.status === "ok" ? "Healthy" : health.status}
                   </Badge>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium">ChromaDB:</span>
                   <Badge
-                    variant={health.services.chromadb === "connected" ? "default" : "destructive"}
+                    variant="outline"
+                    className={
+                      health.services.chromadb === "connected"
+                        ? "gap-1.5 bg-emerald-500/[0.12] text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                        : "gap-1.5 bg-rose-500/[0.12] text-rose-600 dark:text-rose-400 border-rose-500/20"
+                    }
                   >
+                    <span
+                      className={`inline-block h-1.5 w-1.5 rounded-full shrink-0 ${
+                        health.services.chromadb === "connected" ? "bg-emerald-500" : "bg-rose-500"
+                      }`}
+                    />
                     {health.services.chromadb}
                   </Badge>
                 </div>

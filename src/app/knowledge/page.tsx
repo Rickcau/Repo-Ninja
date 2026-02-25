@@ -113,7 +113,19 @@ export default function KnowledgePage() {
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Database className="h-4 w-4" />
           ChromaDB:
-          <Badge variant={status.connected ? "default" : "destructive"}>
+          <Badge
+            variant="outline"
+            className={
+              status.connected
+                ? "gap-1.5 bg-emerald-500/[0.12] text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                : "gap-1.5 bg-rose-500/[0.12] text-rose-600 dark:text-rose-400 border-rose-500/20"
+            }
+          >
+            <span
+              className={`inline-block h-1.5 w-1.5 rounded-full shrink-0 ${
+                status.connected ? "bg-emerald-500" : "bg-rose-500"
+              }`}
+            />
             {status.connected ? "Connected" : "Disconnected"}
           </Badge>
           {status.connected && (

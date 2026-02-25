@@ -3,10 +3,10 @@
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { StatusBadge } from "@/components/shared/status-badge";
-import { Hammer, FileSearch, ShieldCheck, Github, Bot, BookOpen } from "lucide-react";
+import { Hammer, FileSearch, ShieldCheck, Github, Bot, BookOpen, Clock } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { AgentTask } from "@/lib/types";
 
@@ -50,7 +50,6 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Dashboard</h1>
         <p className="text-sm text-muted-foreground mt-1">
           Connected as {session.user?.name || session.user?.email}
         </p>
@@ -59,40 +58,56 @@ export default function DashboardPage() {
       {/* Metric tiles */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
-          <CardContent className="pt-4 pb-4">
+          <CardContent className="pt-4 pb-2">
             <div className="flex items-center gap-2">
               <Bot className="h-4 w-4 text-muted-foreground" />
               <span className="text-xs text-muted-foreground">Active Agents</span>
             </div>
-            <p className="text-2xl font-bold mt-2">{runningCount}</p>
+            <p className="text-2xl font-bold mt-2 tabular-nums">{runningCount}</p>
           </CardContent>
+          <CardFooter className="text-xs text-muted-foreground gap-1">
+            <Clock className="h-3 w-3" />
+            Vs last month
+          </CardFooter>
         </Card>
-        <Card>
-          <CardContent className="pt-4 pb-4">
+        <Card featured>
+          <CardContent className="pt-4 pb-2">
             <div className="flex items-center gap-2">
               <FileSearch className="h-4 w-4 text-muted-foreground" />
               <span className="text-xs text-muted-foreground">Completed Tasks</span>
             </div>
-            <p className="text-2xl font-bold mt-2">{completedCount}</p>
+            <p className="text-2xl font-bold mt-2 tabular-nums">{completedCount}</p>
           </CardContent>
+          <CardFooter className="text-xs text-muted-foreground gap-1">
+            <Clock className="h-3 w-3" />
+            Vs last month
+          </CardFooter>
         </Card>
         <Card>
-          <CardContent className="pt-4 pb-4">
+          <CardContent className="pt-4 pb-2">
             <div className="flex items-center gap-2">
               <Hammer className="h-4 w-4 text-muted-foreground" />
               <span className="text-xs text-muted-foreground">Total Tasks</span>
             </div>
-            <p className="text-2xl font-bold mt-2">{tasks.length}</p>
+            <p className="text-2xl font-bold mt-2 tabular-nums">{tasks.length}</p>
           </CardContent>
+          <CardFooter className="text-xs text-muted-foreground gap-1">
+            <Clock className="h-3 w-3" />
+            Vs last month
+          </CardFooter>
         </Card>
         <Card>
-          <CardContent className="pt-4 pb-4">
+          <CardContent className="pt-4 pb-2">
             <div className="flex items-center gap-2">
               <BookOpen className="h-4 w-4 text-muted-foreground" />
               <span className="text-xs text-muted-foreground">Knowledge Docs</span>
             </div>
-            <p className="text-2xl font-bold mt-2">&mdash;</p>
+            <p className="text-2xl font-bold mt-2 tabular-nums">&mdash;</p>
           </CardContent>
+          <CardFooter className="text-xs text-muted-foreground gap-1">
+            <Clock className="h-3 w-3" />
+            Vs last month
+          </CardFooter>
         </Card>
       </div>
 
@@ -110,10 +125,8 @@ export default function DashboardPage() {
 
       {/* Active agents table */}
       <Card>
-        <CardHeader>
-          <CardTitle className="text-lg font-semibold">Recent Agent Activity</CardTitle>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
+          <h2 className="text-lg font-semibold mb-4">Recent Agent Activity</h2>
           {tasks.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <Bot className="h-12 w-12 text-muted-foreground/50" />

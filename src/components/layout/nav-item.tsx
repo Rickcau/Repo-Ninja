@@ -7,21 +7,30 @@ interface NavItemProps {
   label: string;
   icon: LucideIcon;
   active?: boolean;
+  collapsed?: boolean;
 }
 
-export function NavItem({ href, label, icon: Icon, active }: NavItemProps) {
+export function NavItem({
+  href,
+  label,
+  icon: Icon,
+  active,
+  collapsed,
+}: NavItemProps) {
   return (
     <Link
       href={href}
+      title={collapsed ? label : undefined}
       className={cn(
-        "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+        "flex items-center rounded-md text-sm transition-colors",
+        collapsed ? "justify-center h-10 w-10 mx-auto" : "gap-3 px-3 py-2",
         active
-          ? "bg-primary/10 text-primary font-medium"
-          : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+          ? "bg-primary text-primary-foreground font-semibold"
+          : "text-muted-foreground hover:bg-surface-raised hover:text-foreground"
       )}
     >
-      <Icon className="h-4 w-4" />
-      {label}
+      <Icon className="h-4 w-4 shrink-0" />
+      {!collapsed && label}
     </Link>
   );
 }
