@@ -1,0 +1,1103 @@
+{
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Vektora Fintech Dashboard — Design Tokens
+  // ═══════════════════════════════════════════════════════════════════════════
+  //
+  // Extracted from: Vektora-Fintech-Dashboard.jpg
+  // Color model: Hex + HSL annotations
+  // Theme: Dark-first design with light-mode token swaps
+  //
+  // Two core palettes (primary + secondary) in Tailwind-style ramps,
+  // one blue-tinted gray ramp for surfaces, and accent colors for
+  // status, charts, avatars, and complex visuals.
+  // ═══════════════════════════════════════════════════════════════════════════
+
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 1. PALETTES
+  // ─────────────────────────────────────────────────────────────────────────
+
+  "palettes": {
+
+    "primary": {
+      "_description": "Chartreuse / lime — the dominant accent throughout the UI: active nav, CTA buttons, highlighted chart bars, pagination active page, featured-card glow border, credit-card chip, upgrade banner button",
+      "_hue": "~78 (HSL)",
+      "50":  "#FCFFE5",
+      "100": "#F5FFCC",
+      "200": "#EAFF99",
+      "300": "#DBFF55",
+      "400": "#CCFF00",
+      "500": "#A8D900",
+      "600": "#84B300",
+      "700": "#628A00",
+      "800": "#456300",
+      "900": "#2D4000",
+      "950": "#1A2600"
+    },
+
+    "secondary": {
+      "_description": "Teal — used for 'Wire Transfer' badges, spending-bar segments, credit-card gradient undertone, and secondary data visualisation accents",
+      "_hue": "~174 (HSL)",
+      "50":  "#F0FDFA",
+      "100": "#CCFBF1",
+      "200": "#99F6E4",
+      "300": "#5EEAD4",
+      "400": "#2DD4BF",
+      "500": "#14B8A6",
+      "600": "#0D9488",
+      "700": "#0F766E",
+      "800": "#115E59",
+      "900": "#134E4A",
+      "950": "#042F2E"
+    }
+  },
+
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 2. GRAYS  (Blue-tinted "slate" for surfaces, borders, muted text)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  "gray": {
+    "_description": "Dark surfaces carry a distinct blue/indigo undertone (~hue 220). Five dark elevation levels are annotated below.",
+    "50":  "#F8FAFC",
+    "100": "#F1F5F9",
+    "200": "#E2E8F0",
+    "300": "#CBD5E1",
+    "400": "#94A3B8",
+    "500": "#64748B",
+    "600": "#475569",
+    "700": "#334155",
+    "800": "#1E293B",
+    "900": "#0F172A",
+    "950": "#020617",
+
+    "_elevationMapDark": {
+      "_description": "Named surface stops derived from the gray ramp, dark mode only",
+      "base":     "#080C16",
+      "sidebar":  "#0C1019",
+      "card":     "#111827",
+      "raised":   "#1A2333",
+      "overlay":  "#1F2D3D"
+    }
+  },
+
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 3. ACCENTS  (status badges, chart colors, avatars, complex visuals)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  "accents": {
+
+    "green": {
+      "_purpose": "Success / 'Received' status badge",
+      "400": "#4ADE80",
+      "500": "#22C55E",
+      "600": "#16A34A"
+    },
+
+    "red": {
+      "_purpose": "Error / 'Failed' status badge",
+      "400": "#F87171",
+      "500": "#EF4444",
+      "600": "#DC2626"
+    },
+
+    "amber": {
+      "_purpose": "Warning / 'Processed' status badge",
+      "400": "#FBBF24",
+      "500": "#F59E0B",
+      "600": "#D97706"
+    },
+
+    "blue": {
+      "_purpose": "'Bank Transfer' method badge, chart segment, avatar",
+      "400": "#60A5FA",
+      "500": "#3B82F6",
+      "600": "#2563EB"
+    },
+
+    "coral": {
+      "_purpose": "Shopping spending-bar segment",
+      "400": "#FB7185",
+      "500": "#F43F5E"
+    },
+
+    "purple": {
+      "_purpose": "Avatar accent",
+      "400": "#C084FC",
+      "500": "#A855F7"
+    },
+
+    "orange": {
+      "_purpose": "Avatar accent",
+      "400": "#FB923C",
+      "500": "#F97316"
+    }
+  },
+
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 4. SEMANTIC TOKENS  (light & dark)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  "tokens": {
+
+    "dark": {
+      "_isDefault": true,
+
+      // Surfaces
+      "background":            "#080C16",
+      "surface-sidebar":       "#0C1019",
+      "surface-card":          "#111827",
+      "surface-raised":        "#1A2333",
+      "surface-overlay":       "#1F2D3D",
+      "surface-input":         "#0D111B",
+
+      // Text
+      "text-primary":          "#F8FAFC",
+      "text-secondary":        "#94A3B8",
+      "text-muted":            "#64748B",
+      "text-disabled":         "#475569",
+      "text-on-primary":       "#0F172A",
+
+      // Borders
+      "border-default":        "#1E293B",
+      "border-subtle":         "#162031",
+      "border-strong":         "#334155",
+
+      // Interactive
+      "primary":               "#CCFF00",
+      "primary-hover":         "#DBFF55",
+      "primary-pressed":       "#A8D900",
+      "primary-muted":         "rgba(204, 255, 0, 0.10)",
+      "primary-glow":          "rgba(204, 255, 0, 0.30)",
+
+      "secondary":             "#14B8A6",
+      "secondary-hover":       "#2DD4BF",
+      "secondary-muted":       "rgba(20, 184, 166, 0.15)",
+
+      // Status
+      "status-success":        "#22C55E",
+      "status-success-muted":  "rgba(34, 197, 94, 0.12)",
+      "status-error":          "#EF4444",
+      "status-error-muted":    "rgba(239, 68, 68, 0.12)",
+      "status-warning":        "#F59E0B",
+      "status-warning-muted":  "rgba(245, 158, 11, 0.12)",
+      "status-info":           "#3B82F6",
+      "status-info-muted":     "rgba(59, 130, 246, 0.15)",
+
+      // Chart
+      "chart-highlight":       "#CCFF00",
+      "chart-bar-idle":        "#1A2333",
+      "chart-grid":            "rgba(148, 163, 184, 0.08)",
+      "chart-axis-label":      "#64748B",
+
+      // Focus ring
+      "ring":                  "rgba(204, 255, 0, 0.50)",
+
+      // Shadows (dark mode: very subtle, mainly for overlays)
+      "shadow-color":          "rgba(0, 0, 0, 0.60)"
+    },
+
+    "light": {
+      "_isDefault": false,
+
+      // Surfaces
+      "background":            "#F8FAFC",
+      "surface-sidebar":       "#FFFFFF",
+      "surface-card":          "#FFFFFF",
+      "surface-raised":        "#F1F5F9",
+      "surface-overlay":       "#FFFFFF",
+      "surface-input":         "#F1F5F9",
+
+      // Text
+      "text-primary":          "#0F172A",
+      "text-secondary":        "#475569",
+      "text-muted":            "#94A3B8",
+      "text-disabled":         "#CBD5E1",
+      "text-on-primary":       "#0F172A",
+
+      // Borders
+      "border-default":        "#E2E8F0",
+      "border-subtle":         "#F1F5F9",
+      "border-strong":         "#CBD5E1",
+
+      // Interactive — primary goes darker for legibility on white
+      "primary":               "#84B300",
+      "primary-hover":         "#628A00",
+      "primary-pressed":       "#456300",
+      "primary-muted":         "rgba(132, 179, 0, 0.10)",
+      "primary-glow":          "rgba(132, 179, 0, 0.25)",
+
+      "secondary":             "#0D9488",
+      "secondary-hover":       "#0F766E",
+      "secondary-muted":       "rgba(13, 148, 136, 0.10)",
+
+      // Status (same hues, shifted darker for white bg contrast)
+      "status-success":        "#16A34A",
+      "status-success-muted":  "rgba(22, 163, 74, 0.10)",
+      "status-error":          "#DC2626",
+      "status-error-muted":    "rgba(220, 38, 38, 0.10)",
+      "status-warning":        "#D97706",
+      "status-warning-muted":  "rgba(217, 119, 6, 0.10)",
+      "status-info":           "#2563EB",
+      "status-info-muted":     "rgba(37, 99, 235, 0.10)",
+
+      // Chart
+      "chart-highlight":       "#84B300",
+      "chart-bar-idle":        "#E2E8F0",
+      "chart-grid":            "rgba(15, 23, 42, 0.06)",
+      "chart-axis-label":      "#94A3B8",
+
+      // Focus ring
+      "ring":                  "rgba(132, 179, 0, 0.50)",
+
+      // Shadows
+      "shadow-color":          "rgba(15, 23, 42, 0.08)"
+    }
+  },
+
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 5. TYPOGRAPHY
+  // ─────────────────────────────────────────────────────────────────────────
+
+  "typography": {
+
+    "fontFamilies": {
+      "sans":  "Inter, system-ui, -apple-system, sans-serif",
+      "mono":  "JetBrains Mono, ui-monospace, SFMono-Regular, monospace"
+    },
+
+    "scale": {
+      "2xs":  { "size": "0.625rem", "lineHeight": "0.875rem", "_px": 10 },
+      "xs":   { "size": "0.75rem",  "lineHeight": "1rem",     "_px": 12 },
+      "sm":   { "size": "0.8125rem","lineHeight": "1.25rem",  "_px": 13 },
+      "base": { "size": "0.875rem", "lineHeight": "1.25rem",  "_px": 14 },
+      "lg":   { "size": "1rem",     "lineHeight": "1.5rem",   "_px": 16 },
+      "xl":   { "size": "1.25rem",  "lineHeight": "1.75rem",  "_px": 20 },
+      "2xl":  { "size": "1.5rem",   "lineHeight": "2rem",     "_px": 24 },
+      "3xl":  { "size": "1.875rem", "lineHeight": "2.25rem",  "_px": 30 },
+      "4xl":  { "size": "2.25rem",  "lineHeight": "2.5rem",   "_px": 36 }
+    },
+
+    "weights": {
+      "normal":   400,
+      "medium":   500,
+      "semibold": 600,
+      "bold":     700
+    },
+
+    "features": {
+      "tabularNums": "Used on all monetary values, metrics, card numbers, pagination",
+      "letterSpacing": {
+        "tight":  "-0.025em",
+        "normal": "0",
+        "wide":   "0.05em",
+        "wider":  "0.1em"
+      }
+    },
+
+    "_usage": {
+      "pageTitle":       { "size": "xl",   "weight": "bold",     "color": "text-primary" },
+      "cardMetricValue": { "size": "3xl",  "weight": "bold",     "color": "text-primary", "features": "tabular-nums" },
+      "cardLabel":       { "size": "xs",   "weight": "normal",   "color": "text-muted" },
+      "sectionHeader":   { "size": "2xs",  "weight": "semibold", "color": "text-muted", "transform": "uppercase", "tracking": "wider" },
+      "navItem":         { "size": "base", "weight": "medium",   "color": "text-secondary" },
+      "navItemActive":   { "size": "base", "weight": "semibold", "color": "text-on-primary" },
+      "tableHeader":     { "size": "sm",   "weight": "medium",   "color": "text-muted" },
+      "tableCell":       { "size": "sm",   "weight": "normal",   "color": "text-primary" },
+      "tableCellMono":   { "size": "sm",   "weight": "normal",   "color": "text-secondary", "font": "mono" },
+      "badgeText":       { "size": "xs",   "weight": "medium" },
+      "buttonText":      { "size": "sm",   "weight": "medium" },
+      "creditCardNumber":{ "size": "lg",   "weight": "medium",   "font": "mono", "tracking": "wide" },
+      "paginationInfo":  { "size": "xs",   "weight": "normal",   "color": "text-muted" }
+    }
+  },
+
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 6. SPACING
+  // ─────────────────────────────────────────────────────────────────────────
+
+  "spacing": {
+    "_unit": "rem (4px grid)",
+    "0.5":  "0.125rem",
+    "1":    "0.25rem",
+    "1.5":  "0.375rem",
+    "2":    "0.5rem",
+    "3":    "0.75rem",
+    "4":    "1rem",
+    "5":    "1.25rem",
+    "6":    "1.5rem",
+    "8":    "2rem",
+    "10":   "2.5rem",
+    "12":   "3rem",
+    "16":   "4rem",
+    "20":   "5rem",
+    "24":   "6rem",
+
+    "_usage": {
+      "cardPadding":        "5 (1.25rem, ~20px)",
+      "cardGap":            "4 (1rem, ~16px)",
+      "sidebarPadding":     "4 (1rem)",
+      "sidebarItemGap":     "1 (0.25rem)",
+      "tableRowPaddingY":   "3 (0.75rem)",
+      "tableRowPaddingX":   "4 (1rem)",
+      "sectionGap":         "6 (1.5rem)",
+      "pageGutter":         "6 (1.5rem)",
+      "inputPaddingX":      "3 (0.75rem)",
+      "inputPaddingY":      "2 (0.5rem)",
+      "badgePaddingX":      "2.5 (0.625rem)",
+      "badgePaddingY":      "0.5 (0.125rem)"
+    }
+  },
+
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 7. RADIUS
+  // ─────────────────────────────────────────────────────────────────────────
+
+  "radius": {
+    "xs":   "4px",
+    "sm":   "6px",
+    "md":   "8px",
+    "lg":   "12px",
+    "xl":   "16px",
+    "2xl":  "20px",
+    "full": "9999px",
+
+    "_usage": {
+      "cards":           "lg (12px)",
+      "buttons":         "md (8px)",
+      "inputs":          "md (8px)",
+      "badges":          "full (pill)",
+      "navActiveItem":   "md (8px)",
+      "creditCard":      "xl (16px)",
+      "avatars":         "full (circle)",
+      "chartBars":       "xs top-only (4px on top-left, top-right)",
+      "paginationPage":  "md (8px)",
+      "sidebarSearch":   "md (8px)",
+      "filterPills":     "full (pill)",
+      "viewToggle":      "md (8px) for container, sm (6px) for active tab"
+    }
+  },
+
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 8. SHADOWS
+  // ─────────────────────────────────────────────────────────────────────────
+
+  "shadows": {
+    "_note": "Dark-mode UI relies primarily on borders and surface elevation, not shadows. Shadows are used sparingly on overlays and the credit card.",
+
+    "sm":    "0 1px 2px var(--shadow-color)",
+    "md":    "0 4px 12px var(--shadow-color)",
+    "lg":    "0 8px 24px var(--shadow-color)",
+    "xl":    "0 12px 40px var(--shadow-color)",
+
+    "glow-primary": "0 0 20px rgba(204, 255, 0, 0.25)",
+    "glow-primary-intense": "0 0 40px rgba(204, 255, 0, 0.40)",
+
+    "card-featured": {
+      "_description": "The 'Total Saving' card — lime glow on the left/top border edge",
+      "value": "inset 2px 0 0 0 #CCFF00, 0 0 30px rgba(204, 255, 0, 0.15)"
+    },
+
+    "credit-card": "0 8px 32px rgba(0, 0, 0, 0.40)"
+  },
+
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 9. GRADIENTS
+  // ─────────────────────────────────────────────────────────────────────────
+
+  "gradients": {
+
+    "creditCard": {
+      "_description": "Dark card with subtle teal-green undertone fading to neutral dark; chip has a metallic lime highlight",
+      "background": "linear-gradient(135deg, #0D2818 0%, #111827 50%, #1A2333 100%)",
+      "chipHighlight": "linear-gradient(135deg, #CCFF00 0%, #A8D900 100%)"
+    },
+
+    "featuredCardBorder": {
+      "_description": "Left-edge glow on the highlighted metric card — lime fading to transparent",
+      "value": "linear-gradient(to bottom, #CCFF00, transparent)"
+    },
+
+    "pageBackground": {
+      "_description": "Very subtle radial vignette darkening at corners (dark mode only)",
+      "value": "radial-gradient(ellipse at 50% 0%, #0F172A 0%, #080C16 70%)"
+    }
+  },
+
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 10. BREAKPOINTS  (Tailwind v4 defaults, mobile-first)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  "breakpoints": {
+    "sm":  "640px",
+    "md":  "768px",
+    "lg":  "1024px",
+    "xl":  "1280px",
+    "2xl": "1536px"
+  },
+
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 11. ANIMATIONS & TRANSITIONS
+  // ─────────────────────────────────────────────────────────────────────────
+
+  "animations": {
+
+    "defaults": {
+      "transitionDuration": "150ms",
+      "transitionEasing":   "cubic-bezier(0.4, 0, 0.2, 1)"
+    },
+
+    "fadeIn": {
+      "duration": "300ms",
+      "easing": "ease-out",
+      "keyframes": { "from": { "opacity": 0 }, "to": { "opacity": 1 } }
+    },
+
+    "slideUp": {
+      "duration": "400ms",
+      "easing": "cubic-bezier(0.16, 1, 0.3, 1)",
+      "keyframes": {
+        "from": { "opacity": 0, "translateY": "12px" },
+        "to":   { "opacity": 1, "translateY": "0" }
+      }
+    },
+
+    "glowPulse": {
+      "_description": "Subtle pulsing glow on the featured card's lime border",
+      "duration": "2s",
+      "easing": "ease-in-out",
+      "iterationCount": "infinite",
+      "keyframes": {
+        "0%":   { "boxShadow": "0 0 20px rgba(204, 255, 0, 0.15)" },
+        "50%":  { "boxShadow": "0 0 30px rgba(204, 255, 0, 0.30)" },
+        "100%": { "boxShadow": "0 0 20px rgba(204, 255, 0, 0.15)" }
+      }
+    },
+
+    "chartBarGrow": {
+      "_description": "Bars grow up from zero height on initial load",
+      "duration": "600ms",
+      "easing": "cubic-bezier(0.34, 1.56, 0.64, 1)",
+      "keyframes": {
+        "from": { "scaleY": 0, "transformOrigin": "bottom" },
+        "to":   { "scaleY": 1 }
+      }
+    },
+
+    "sidebarCollapse": {
+      "duration": "250ms",
+      "easing": "cubic-bezier(0.4, 0, 0.2, 1)"
+    },
+
+    "popoverIn": {
+      "duration": "150ms",
+      "easing": "cubic-bezier(0.16, 1, 0.3, 1)",
+      "keyframes": {
+        "from": { "opacity": 0, "scale": 0.95 },
+        "to":   { "opacity": 1, "scale": 1 }
+      }
+    },
+
+    "popoverOut": {
+      "duration": "100ms",
+      "easing": "ease-in",
+      "keyframes": {
+        "from": { "opacity": 1, "scale": 1 },
+        "to":   { "opacity": 0, "scale": 0.95 }
+      }
+    }
+  },
+
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 12. COMPONENTS
+  // ─────────────────────────────────────────────────────────────────────────
+
+  "components": {
+
+    // ── Sidebar ──────────────────────────────────────────────────────────
+
+    "sidebar": {
+      "width": { "expanded": "15rem", "collapsed": "4rem" },
+      "bg": "surface-sidebar",
+      "borderRight": "border-subtle",
+      "padding": "1rem",
+
+      "logo": {
+        "icon": "Circular, 2rem diameter, primary-400 bg, dark glyph centered",
+        "text": "lg, bold, text-primary, sits right of icon with 0.5rem gap"
+      },
+
+      "collapseToggle": {
+        "position": "absolute top-right of sidebar header",
+        "icon": "double-chevron-left (rotates 180° when collapsed)",
+        "size": "1.5rem",
+        "color": "text-muted",
+        "hoverColor": "text-secondary"
+      },
+
+      "search": {
+        "height": "2.25rem",
+        "bg": "surface-input",
+        "border": "border-default",
+        "radius": "md",
+        "icon": "magnifying-glass, left-aligned, text-muted",
+        "placeholder": "text-muted, sm"
+      },
+
+      "sectionLabel": {
+        "fontSize": "2xs",
+        "fontWeight": "semibold",
+        "color": "text-muted",
+        "textTransform": "uppercase",
+        "letterSpacing": "wider",
+        "paddingTop": "1.5rem",
+        "paddingBottom": "0.5rem",
+        "toggle": "chevron-up/down on the right"
+      },
+
+      "navItem": {
+        "height": "2.25rem",
+        "radius": "md",
+        "paddingX": "0.75rem",
+        "gap": "0.75rem",
+        "iconSize": "1.125rem",
+        "fontSize": "base (14px)",
+        "fontWeight": "medium",
+        "transition": "background 150ms, color 150ms",
+
+        "inactive": {
+          "bg": "transparent",
+          "color": "text-secondary",
+          "iconColor": "text-muted",
+          "hover": { "bg": "surface-raised", "color": "text-primary" }
+        },
+        "active": {
+          "bg": "primary-400 (#CCFF00)",
+          "color": "text-on-primary (#0F172A)",
+          "iconColor": "text-on-primary",
+          "fontWeight": "semibold"
+        }
+      },
+
+      "subItem": {
+        "_description": "Items indented under a section (e.g. Integration, Automation)",
+        "paddingLeft": "2.5rem"
+      }
+    },
+
+
+    // ── Header ──────────────────────────────────────────────────────────
+
+    "header": {
+      "height": "3.5rem",
+      "bg": "transparent (inherits background)",
+      "borderBottom": "none (separated by spacing only)",
+      "paddingX": "1.5rem",
+
+      "title": { "fontSize": "xl", "fontWeight": "bold", "color": "text-primary" },
+
+      "iconButtons": {
+        "size": "2rem",
+        "iconSize": "1.125rem",
+        "color": "text-secondary",
+        "hoverColor": "text-primary",
+        "gap": "0.5rem"
+      },
+
+      "icons": ["clock/history", "notification-bell", "user-avatar-silhouette"]
+    },
+
+
+    // ── Action Bar ──────────────────────────────────────────────────────
+
+    "actionBar": {
+      "gap": "0.75rem",
+      "marginBottom": "1rem",
+
+      "outlineButton": {
+        "height": "2.25rem",
+        "paddingX": "1rem",
+        "radius": "md",
+        "border": "border-default",
+        "bg": "transparent",
+        "color": "text-secondary",
+        "fontSize": "sm",
+        "fontWeight": "medium",
+        "iconSize": "1rem",
+        "iconGap": "0.5rem",
+        "hover": { "bg": "surface-raised", "borderColor": "border-strong", "color": "text-primary" }
+      },
+
+      "searchInput": {
+        "_description": "Same style as sidebar search, aligned to the right"
+      }
+    },
+
+
+    // ── Metric Card ─────────────────────────────────────────────────────
+
+    "metricCard": {
+      "bg": "surface-card",
+      "border": "border-default",
+      "radius": "lg",
+      "padding": "1.25rem",
+      "gap": "0.5rem",
+
+      "label": { "fontSize": "xs", "fontWeight": "normal", "color": "text-muted" },
+      "value": { "fontSize": "3xl", "fontWeight": "bold", "color": "text-primary", "features": "tabular-nums" },
+      "footer": {
+        "fontSize": "xs",
+        "color": "text-muted",
+        "icon": "clock, 0.875rem, text-muted",
+        "gap": "0.375rem"
+      },
+
+      "featuredVariant": {
+        "_description": "The 'Total Saving' card with the glowing lime left-border accent",
+        "borderLeft": "2px solid primary-400",
+        "boxShadow": "shadow.card-featured",
+        "animation": "glowPulse (optional)"
+      }
+    },
+
+
+    // ── Spending Limits Card ────────────────────────────────────────────
+
+    "spendingLimitsCard": {
+      "bg": "surface-card",
+      "border": "border-default",
+      "radius": "lg",
+      "padding": "1.25rem",
+
+      "title": { "fontSize": "xs", "color": "text-muted" },
+      "value": { "fontSize": "3xl", "fontWeight": "bold", "color": "text-primary" },
+
+      "segmentedBar": {
+        "height": "0.5rem",
+        "radius": "full",
+        "gap": "2px between segments",
+        "segments": {
+          "shopping":      { "color": "#F43F5E", "percentage": 27 },
+          "subscriptions": { "color": "#3B82F6", "percentage": 35 },
+          "diningOut":     { "color": "#14B8A6", "percentage": 18 },
+          "other":         { "color": "#334155", "percentage": 20 }
+        }
+      },
+
+      "legend": {
+        "layout": "2x2 grid or inline wrap",
+        "item": {
+          "dot": "0.5rem circle in segment color",
+          "text": "xs, text-secondary",
+          "gap": "0.375rem between dot and text"
+        }
+      }
+    },
+
+
+    // ── Credit Card ─────────────────────────────────────────────────────
+
+    "creditCard": {
+      "aspectRatio": "1.586 (standard card ratio)",
+      "radius": "xl",
+      "background": "gradients.creditCard.background",
+      "shadow": "shadows.credit-card",
+      "padding": "1.25rem",
+
+      "logo": { "position": "top-left", "height": "1.5rem", "color": "white" },
+      "chip": { "position": "bottom-left", "size": "2rem", "gradient": "gradients.creditCard.chipHighlight" },
+      "number": {
+        "fontSize": "lg",
+        "fontWeight": "medium",
+        "fontFamily": "mono",
+        "letterSpacing": "wide",
+        "color": "white"
+      },
+      "details": {
+        "position": "bottom-right",
+        "fontSize": "xs",
+        "color": "rgba(255, 255, 255, 0.7)"
+      }
+    },
+
+
+    // ── Balance Card ────────────────────────────────────────────────────
+
+    "balanceCard": {
+      "bg": "surface-card",
+      "border": "border-default",
+      "radius": "lg",
+      "padding": "1.25rem",
+
+      "title": { "fontSize": "xs", "color": "text-muted" },
+      "value": { "fontSize": "3xl", "fontWeight": "bold", "color": "text-primary" },
+
+      "actions": {
+        "gap": "0.5rem",
+        "requestButton": {
+          "_style": "outline button (same as actionBar.outlineButton)"
+        },
+        "transferButton": {
+          "bg": "primary-400",
+          "color": "text-on-primary",
+          "radius": "md",
+          "height": "2.25rem",
+          "paddingX": "1rem",
+          "fontSize": "sm",
+          "fontWeight": "medium",
+          "icon": "arrow-up-right, left of text",
+          "hover": { "bg": "primary-300" }
+        },
+        "menuIcon": {
+          "icon": "three-horizontal-lines or more-vertical",
+          "color": "text-muted"
+        }
+      },
+
+      "viewToggle": {
+        "bg": "surface-input",
+        "border": "border-default",
+        "radius": "md",
+        "height": "2rem",
+        "padding": "2px",
+        "tab": {
+          "paddingX": "0.75rem",
+          "fontSize": "sm",
+          "radius": "sm"
+        },
+        "activeTab": { "bg": "surface-card", "color": "text-primary", "border": "border-default" },
+        "inactiveTab": { "bg": "transparent", "color": "text-muted" }
+      }
+    },
+
+
+    // ── Bar Chart ───────────────────────────────────────────────────────
+
+    "barChart": {
+      "barWidth": "2rem",
+      "barGap": "1rem",
+      "barRadius": "xs (top-left and top-right only)",
+      "barColorIdle": "chart-bar-idle",
+      "barColorHighlight": "chart-highlight (primary-400)",
+      "gridLines": { "color": "chart-grid", "style": "dashed or solid 1px" },
+      "axisLabels": { "fontSize": "xs", "color": "chart-axis-label" },
+      "animation": "chartBarGrow on initial render"
+    },
+
+
+    // ── Transaction Table ───────────────────────────────────────────────
+
+    "transactionTable": {
+
+      "filterBar": {
+        "gap": "0.5rem",
+        "searchInput": {
+          "_description": "Same style as sidebar search, ~16rem wide"
+        },
+        "filterPill": {
+          "height": "2rem",
+          "radius": "full",
+          "bg": "surface-raised",
+          "border": "border-default",
+          "paddingX": "0.75rem",
+          "fontSize": "xs",
+          "color": "text-secondary",
+          "iconSize": "0.875rem",
+          "gap": "0.375rem"
+        },
+        "moreDropdown": {
+          "_description": "Pill with 'More' text + chevron-down, same style as filterPill"
+        },
+        "importExportButtons": {
+          "_description": "Ghost buttons with icon + text, aligned right"
+        }
+      },
+
+      "table": {
+        "bg": "transparent (inherits card or page bg)",
+        "headerRow": {
+          "bg": "transparent",
+          "borderBottom": "border-default",
+          "cellPaddingX": "1rem",
+          "cellPaddingY": "0.75rem",
+          "fontSize": "sm",
+          "fontWeight": "medium",
+          "color": "text-muted"
+        },
+        "bodyRow": {
+          "borderBottom": "border-subtle",
+          "cellPaddingX": "1rem",
+          "cellPaddingY": "0.75rem",
+          "fontSize": "sm",
+          "color": "text-primary",
+          "hover": { "bg": "surface-raised" },
+          "transition": "background 150ms"
+        },
+        "checkbox": {
+          "size": "1rem",
+          "radius": "xs",
+          "border": "border-strong",
+          "checkedBg": "primary-400",
+          "checkedIcon": "check, text-on-primary"
+        }
+      },
+
+      "avatar": {
+        "size": "1.75rem",
+        "radius": "full",
+        "fontSize": "xs",
+        "fontWeight": "semibold",
+        "colors": {
+          "_description": "Unique bg color per user, white text or initials",
+          "options": ["orange-500", "green-500", "blue-500", "purple-500"]
+        }
+      },
+
+      "methodBadge": {
+        "radius": "full",
+        "paddingX": "0.625rem",
+        "paddingY": "0.125rem",
+        "fontSize": "xs",
+        "fontWeight": "medium",
+        "wireTransfer": { "bg": "secondary-muted", "color": "secondary-400 (#2DD4BF)" },
+        "bankTransfer": { "bg": "status-info-muted", "color": "blue-400 (#60A5FA)" }
+      },
+
+      "statusBadge": {
+        "radius": "full",
+        "paddingX": "0.625rem",
+        "paddingY": "0.125rem",
+        "fontSize": "xs",
+        "fontWeight": "medium",
+        "dot": "0.375rem circle, inline before text",
+        "received":  { "bg": "status-success-muted", "color": "green-400", "dotColor": "green-500" },
+        "failed":    { "bg": "status-error-muted",   "color": "red-400",   "dotColor": "red-500" },
+        "processed": { "bg": "status-warning-muted", "color": "amber-400", "dotColor": "amber-500" }
+      },
+
+      "pagination": {
+        "gap": "0.25rem",
+        "page": {
+          "size": "2rem",
+          "radius": "md",
+          "fontSize": "sm",
+          "fontWeight": "medium"
+        },
+        "activePage": { "bg": "primary-400", "color": "text-on-primary" },
+        "inactivePage": { "bg": "transparent", "color": "text-muted", "hover": { "bg": "surface-raised" } },
+        "arrows": { "color": "text-muted", "hoverColor": "text-secondary" },
+        "ellipsis": { "color": "text-muted" },
+        "info": { "fontSize": "xs", "color": "text-muted", "alignedRight": true },
+        "showAll": { "fontSize": "xs", "fontWeight": "semibold", "color": "text-primary", "hover": { "decoration": "underline" } }
+      }
+    },
+
+
+    // ── Upgrade Banner (Toast / CTA) ────────────────────────────────────
+
+    "upgradeBanner": {
+      "position": "fixed bottom-left",
+      "offset": "1.5rem",
+      "width": "16rem",
+      "bg": "surface-card",
+      "border": "border-default",
+      "radius": "lg",
+      "padding": "1rem",
+      "shadow": "lg",
+
+      "icon": { "type": "crown/sparkle", "color": "primary-400", "size": "1.25rem" },
+      "title": { "fontSize": "sm", "fontWeight": "semibold", "color": "text-primary" },
+      "description": { "fontSize": "xs", "color": "text-muted", "marginTop": "0.25rem" },
+      "closeButton": {
+        "position": "top-right",
+        "icon": "x-mark",
+        "size": "1rem",
+        "color": "text-muted",
+        "hoverColor": "text-primary"
+      },
+      "actions": {
+        "marginTop": "0.75rem",
+        "gap": "0.75rem",
+        "upgradeButton": {
+          "bg": "primary-400",
+          "color": "text-on-primary",
+          "radius": "md",
+          "height": "2rem",
+          "paddingX": "0.75rem",
+          "fontSize": "xs",
+          "fontWeight": "semibold",
+          "icon": "sparkle, left"
+        },
+        "learnMoreLink": {
+          "fontSize": "xs",
+          "color": "text-secondary",
+          "hover": { "color": "text-primary", "decoration": "underline" }
+        }
+      }
+    },
+
+
+    // ── Generic Button Variants ─────────────────────────────────────────
+
+    "button": {
+      "base": {
+        "display": "inline-flex",
+        "alignItems": "center",
+        "justifyContent": "center",
+        "gap": "0.5rem",
+        "radius": "md",
+        "fontSize": "sm",
+        "fontWeight": "medium",
+        "cursor": "pointer",
+        "transition": "background 150ms, border-color 150ms, color 150ms",
+        "disabled": { "opacity": 0.5, "pointerEvents": "none" }
+      },
+      "variants": {
+        "primary":  { "bg": "primary-400", "color": "text-on-primary", "hover": { "bg": "primary-300" } },
+        "outline":  { "bg": "transparent", "border": "border-default", "color": "text-secondary", "hover": { "bg": "surface-raised", "color": "text-primary" } },
+        "ghost":    { "bg": "transparent", "color": "text-secondary", "hover": { "bg": "surface-raised", "color": "text-primary" } },
+        "danger":   { "bg": "status-error", "color": "#FFFFFF", "hover": { "bg": "red-600" } },
+        "link":     { "bg": "transparent", "color": "primary-400", "hover": { "decoration": "underline" } }
+      },
+      "sizes": {
+        "xs":      { "height": "1.5rem", "paddingX": "0.5rem", "fontSize": "xs" },
+        "sm":      { "height": "2rem",   "paddingX": "0.75rem" },
+        "md":      { "height": "2.25rem","paddingX": "1rem" },
+        "lg":      { "height": "2.75rem","paddingX": "1.25rem", "fontSize": "base" },
+        "icon":    { "size": "2.25rem" },
+        "icon-sm": { "size": "2rem" }
+      }
+    },
+
+
+    // ── Badge (generic) ─────────────────────────────────────────────────
+
+    "badge": {
+      "base": {
+        "display": "inline-flex",
+        "alignItems": "center",
+        "gap": "0.375rem",
+        "radius": "full",
+        "paddingX": "0.625rem",
+        "paddingY": "0.125rem",
+        "fontSize": "xs",
+        "fontWeight": "medium"
+      },
+      "_note": "Status and method badge colors defined in transactionTable.statusBadge and transactionTable.methodBadge"
+    }
+  },
+
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 13. LAYOUT
+  // ─────────────────────────────────────────────────────────────────────────
+
+  "layout": {
+
+    "shell": {
+      "_description": "Sidebar + main content, full viewport height",
+      "display": "flex, horizontal",
+      "minHeight": "100vh"
+    },
+
+    "sidebar": {
+      "width": "15rem (collapsible to 4rem)",
+      "position": "sticky left, full height",
+      "borderRight": "border-subtle",
+      "zIndex": 40
+    },
+
+    "main": {
+      "flex": 1,
+      "paddingX": { "default": "1.5rem", "2xl": "2rem" },
+      "paddingY": "1.5rem",
+      "maxWidth": "none (fluid)"
+    },
+
+    "responsiveBehavior": {
+
+      "below-md (< 768px)": {
+        "sidebar": "hidden or overlay drawer",
+        "metricCards": "single column, stacked",
+        "spendingAndBalance": "single column, stacked",
+        "table": "horizontal scroll, condensed columns"
+      },
+
+      "md-to-lg (768px – 1023px)": {
+        "metricCards": "2 columns",
+        "spendingAndBalance": "single column or 2-col with balance narrower",
+        "table": "full width, all columns"
+      },
+
+      "lg-and-above (≥ 1024px)": {
+        "sidebar": "visible, 15rem",
+        "metricCards": "3 columns",
+        "spendingAndBalance": "2 columns (40/60 split)",
+        "table": "full width, all columns"
+      },
+
+      "xl-and-above (≥ 1280px)": {
+        "_description": "No layout changes, just more breathing room"
+      }
+    },
+
+    "grid": {
+      "metricCards": {
+        "columns": { "default": 1, "md": 2, "lg": 3 },
+        "gap": "1rem"
+      },
+      "middleRow": {
+        "_description": "Spending limits (left) + Balance card (right)",
+        "columns": { "default": 1, "lg": "2 (roughly 40% / 60%)" },
+        "gap": "1rem"
+      }
+    }
+  },
+
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 14. OPACITY CONVENTIONS
+  // ─────────────────────────────────────────────────────────────────────────
+
+  "opacityConventions": {
+    "0.06–0.08": "Chart grid lines, very subtle dividers",
+    "0.10":      "Status badge backgrounds, primary-muted backgrounds",
+    "0.12–0.15": "Tinted status/method badge backgrounds",
+    "0.25":      "Primary glow (shadow), focus ring glow",
+    "0.30":      "Intense primary glow",
+    "0.40":      "Credit card shadow, intense overlay glow",
+    "0.50":      "Focus ring",
+    "0.60":      "Dark-mode heavy shadow base",
+    "0.70":      "Credit card detail text (white at 70%)"
+  },
+
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 15. ICONOGRAPHY
+  // ─────────────────────────────────────────────────────────────────────────
+
+  "iconography": {
+    "style":       "Outlined, 1.5px stroke, rounded joins",
+    "defaultSize": "1.125rem (18px)",
+    "smallSize":   "0.875rem (14px) — inside badges, table cells, card footers",
+    "color":       "Inherits from parent text color",
+
+    "_catalog": {
+      "nav": ["layout-dashboard", "bell", "chart-bar", "arrows-exchange", "credit-card", "clock-history"],
+      "features": ["plug-connected", "zap-automation"],
+      "tools": ["settings-gear", "help-circle"],
+      "actions": ["file-report", "download-export", "upload-import", "search", "plus", "refresh", "arrow-up-right", "x-mark", "chevron-left", "chevron-right", "chevron-up", "chevron-down", "more-horizontal"],
+      "status": ["clock", "sparkle/crown"]
+    }
+  }
+}
