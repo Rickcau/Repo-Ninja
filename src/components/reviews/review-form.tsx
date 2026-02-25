@@ -1,10 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import {
+  ShieldCheck,
+  Zap,
+  Accessibility,
+  Code2,
+  CheckCircle2,
+  XCircle,
+  BookOpen,
+} from "lucide-react";
 import type { ReviewType, ReviewScope } from "@/lib/types";
 
 interface ReviewFormProps {
@@ -18,18 +33,67 @@ interface ReviewFormProps {
   isLoading: boolean;
 }
 
-const REVIEW_TYPES: { value: ReviewType; label: string }[] = [
-  { value: "security", label: "Security" },
-  { value: "performance", label: "Performance" },
-  { value: "accessibility", label: "Accessibility" },
-  { value: "general", label: "General" },
+// TODO: Replace with real API data from knowledge base
+const REVIEW_TYPES: {
+  value: ReviewType;
+  label: string;
+  description: string;
+  icon: typeof ShieldCheck;
+  kbDocuments: string[];
+}[] = [
+  {
+    value: "security",
+    label: "Security",
+    description:
+      "Checks for vulnerabilities, dependency issues, and authentication flaws",
+    icon: ShieldCheck,
+    kbDocuments: ["security.md", "auth-patterns.md", "dependency-audit.md"],
+  },
+  {
+    value: "performance",
+    label: "Performance",
+    description:
+      "Analyzes bottlenecks, memory leaks, and optimization opportunities",
+    icon: Zap,
+    kbDocuments: ["performance.md", "caching-strategies.md"],
+  },
+  {
+    value: "accessibility",
+    label: "Accessibility",
+    description:
+      "Validates WCAG compliance, ARIA usage, and keyboard navigation",
+    icon: Accessibility,
+    kbDocuments: ["accessibility.md", "wcag-checklist.md"],
+  },
+  {
+    value: "general",
+    label: "General",
+    description:
+      "Code style, naming conventions, architecture, and maintainability",
+    icon: Code2,
+    kbDocuments: ["best-practices.md", "code-style.md", "architecture.md"],
+  },
 ];
 
 const SCOPES: { value: ReviewScope; label: string; description: string }[] = [
-  { value: "full-repo", label: "Full Repository", description: "Review the entire repository" },
-  { value: "pr", label: "Pull Request", description: "Review a specific PR" },
-  { value: "files", label: "File Pattern", description: "Review files matching a pattern" },
+  {
+    value: "full-repo",
+    label: "Full Repository",
+    description: "Review the entire repository",
+  },
+  {
+    value: "pr",
+    label: "Pull Request",
+    description: "Review a specific PR",
+  },
+  {
+    value: "files",
+    label: "File Pattern",
+    description: "Review files matching a pattern",
+  },
 ];
+
+const REPO_PATTERN = /^[a-zA-Z0-9._-]+\/[a-zA-Z0-9._-]+$/;
 
 export function ReviewForm({ onSubmit, isLoading }: ReviewFormProps) {
   const [repo, setRepo] = useState("");
@@ -38,20 +102,36 @@ export function ReviewForm({ onSubmit, isLoading }: ReviewFormProps) {
   const [prNumber, setPrNumber] = useState("");
   const [filePattern, setFilePattern] = useState("");
 
+  const repoValid = useMemo(() => REPO_PATTERN.test(repo.trim()), [repo]);
+  const repoTouched = repo.length > 0;
+
   const toggleType = (type: ReviewType) => {
     setSelectedTypes((prev) =>
       prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]
     );
   };
 
+  // Collect all KB documents that will be consulted
+  const activeKbDocs = useMemo(() => {
+    const docs = new Set<string>();
+    for (const t of REVIEW_TYPES) {
+      if (selectedTypes.includes(t.value)) {
+        for (const d of t.kbDocuments) docs.add(d);
+      }
+    }
+    return Array.from(docs);
+  }, [selectedTypes]);
+
   const handleSubmit = () => {
-    if (!repo.trim() || selectedTypes.length === 0) return;
+    if (!repo.trim() || !repoValid || selectedTypes.length === 0) return;
     onSubmit({
       repo: repo.trim(),
       reviewTypes: selectedTypes,
       scope,
-      prNumber: scope === "pr" && prNumber ? parseInt(prNumber, 10) : undefined,
-      filePattern: scope === "files" && filePattern ? filePattern.trim() : undefined,
+      prNumber:
+        scope === "pr" && prNumber ? parseInt(prNumber, 10) : undefined,
+      filePattern:
+        scope === "files" && filePattern ? filePattern.trim() : undefined,
     });
   };
 
@@ -64,31 +144,116 @@ export function ReviewForm({ onSubmit, isLoading }: ReviewFormProps) {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Repository */}
+        {/* Repository with validation */}
         <div className="space-y-2">
-          <label className="text-sm font-medium">Repository (owner/repo)</label>
-          <Input
-            value={repo}
-            onChange={(e) => setRepo(e.target.value)}
-            placeholder="owner/repo"
-          />
+          <label className="text-sm font-medium">Repository</label>
+          <div className="relative">
+            <Input
+              value={repo}
+              onChange={(e) => setRepo(e.target.value)}
+              placeholder="owner/repo"
+              className={
+                repoTouched
+                  ? repoValid
+                    ? "pr-9 border-green-500/50 focus-visible:ring-green-500/30"
+                    : "pr-9 border-red-500/50 focus-visible:ring-red-500/30"
+                  : ""
+              }
+            />
+            {repoTouched && (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                {repoValid ? (
+                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                ) : (
+                  <XCircle className="h-4 w-4 text-red-500" />
+                )}
+              </div>
+            )}
+          </div>
+          {repoTouched && !repoValid && (
+            <p className="text-xs text-red-500">
+              Enter a valid repository in owner/repo format
+            </p>
+          )}
         </div>
 
-        {/* Review Types */}
+        {/* Review Types as cards */}
         <div className="space-y-2">
           <label className="text-sm font-medium">Review Types</label>
-          <div className="flex flex-wrap gap-4">
-            {REVIEW_TYPES.map(({ value, label }) => (
-              <label key={value} className="flex items-center gap-2 cursor-pointer">
-                <Checkbox
-                  checked={selectedTypes.includes(value)}
-                  onCheckedChange={() => toggleType(value)}
-                />
-                <span className="text-sm">{label}</span>
-              </label>
-            ))}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {REVIEW_TYPES.map(
+              ({ value, label, description, icon: Icon, kbDocuments }) => {
+                const selected = selectedTypes.includes(value);
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => toggleType(value)}
+                    className={`rounded-lg border p-4 text-left transition-all ${
+                      selected
+                        ? "border-primary bg-primary/5 shadow-[0_0_0_1px] shadow-primary/20"
+                        : "border-border hover:border-primary/40"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 mb-2">
+                      <div
+                        className={`h-8 w-8 rounded-md flex items-center justify-center ${
+                          selected
+                            ? "bg-primary/15 text-primary"
+                            : "bg-muted text-muted-foreground"
+                        }`}
+                      >
+                        <Icon className="h-4 w-4" />
+                      </div>
+                      <span className="text-sm font-medium">{label}</span>
+                      {selected && (
+                        <CheckCircle2 className="h-4 w-4 text-primary ml-auto" />
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      {description}
+                    </p>
+                    {/* KB documents that will be consulted */}
+                    {selected && (
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {kbDocuments.map((doc) => (
+                          <Badge
+                            key={doc}
+                            variant="outline"
+                            className="text-[10px] px-1.5 py-0 h-5"
+                          >
+                            <BookOpen className="h-2.5 w-2.5 mr-0.5" />
+                            {doc}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </button>
+                );
+              }
+            )}
           </div>
         </div>
+
+        {/* Active KB documents summary */}
+        {activeKbDocs.length > 0 && (
+          <div className="rounded-md bg-muted/50 border border-border p-3">
+            <p className="text-xs font-medium text-muted-foreground mb-1.5">
+              Knowledge base documents to consult:
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {activeKbDocs.map((doc) => (
+                <Badge
+                  key={doc}
+                  variant="outline"
+                  className="text-xs"
+                >
+                  {doc}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Scope */}
         <div className="space-y-2">
@@ -140,7 +305,9 @@ export function ReviewForm({ onSubmit, isLoading }: ReviewFormProps) {
         {/* Submit */}
         <Button
           onClick={handleSubmit}
-          disabled={!repo.trim() || selectedTypes.length === 0 || isLoading}
+          disabled={
+            !repo.trim() || !repoValid || selectedTypes.length === 0 || isLoading
+          }
           className="w-full"
         >
           {isLoading ? "Reviewing..." : "Start Review"}
