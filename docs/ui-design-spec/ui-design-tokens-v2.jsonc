@@ -1,0 +1,1499 @@
+{
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Repo-Ninja UI Design Tokens v2
+  // ═══════════════════════════════════════════════════════════════════════════
+  //
+  // Merges Vektora Fintech Dashboard visual language into the existing
+  // Repo-Ninja component structure.
+  //
+  // KEY CHANGES from v1:
+  //   - Primary palette: Indigo -> Chartreuse/Lime (hue ~78)
+  //   - Secondary palette: Slate -> Teal (hue ~174)
+  //   - Gray: Achromatic -> Blue-tinted slate (hue ~220)
+  //   - Default theme: Dark-first (class-based toggle remains)
+  //   - Depth model: Elevation through brightness, not shadows
+  //   - New effects: Glow emphasis, featured card pulse, chart bar grow
+  //   - Sidebar: Now collapsible (15rem -> 4rem)
+  //   - Header: Transparent bg, no bottom border
+  //   - Nav items: Active = solid primary fill with dark text
+  //   - Status badges: Leading dot + tinted translucent background
+  //   - All v1 components preserved; visual treatments updated
+  //
+  // Color model: Hex (with approximate OKLCh in comments where helpful)
+  // Usage: Single source of truth for all visual decisions.
+  //        Reference from ui-design-brief-v2.md.
+  // ═══════════════════════════════════════════════════════════════════════════
+
+
+  // ─── 1. PALETTES ────────────────────────────────────────────────────────────
+  // Full ramp from 50 (lightest) to 950 (darkest)
+
+  "palettes": {
+
+    "primary": {
+      "_description": "Chartreuse / Lime — CTAs, active nav, focus rings, links, progress fills, chart highlights, featured-card glow",
+      "_hue": "~78 (HSL) / ~128 (OKLCh)",
+      "50":  "#FCFFE5",   // oklch(~0.99 0.06 128)
+      "100": "#F5FFCC",   // oklch(~0.97 0.10 128)
+      "200": "#EAFF99",   // oklch(~0.94 0.16 128)
+      "300": "#DBFF55",   // oklch(~0.92 0.22 128)
+      "400": "#CCFF00",   // oklch(~0.91 0.27 128) — brand primary (dark mode)
+      "500": "#A8D900",   // oklch(~0.82 0.24 128)
+      "600": "#84B300",   // oklch(~0.72 0.21 128) — brand primary (light mode)
+      "700": "#628A00",   // oklch(~0.59 0.17 128)
+      "800": "#456300",   // oklch(~0.45 0.13 128)
+      "900": "#2D4000",   // oklch(~0.32 0.09 128)
+      "950": "#1A2600"    // oklch(~0.22 0.06 128)
+    },
+
+    "secondary": {
+      "_description": "Teal — secondary data viz, transfer badges, spending bar segments, secondary CTAs",
+      "_hue": "~174 (HSL) / ~175 (OKLCh)",
+      "50":  "#F0FDFA",   // oklch(~0.98 0.02 175)
+      "100": "#CCFBF1",   // oklch(~0.95 0.06 175)
+      "200": "#99F6E4",   // oklch(~0.91 0.11 175)
+      "300": "#5EEAD4",   // oklch(~0.85 0.15 175)
+      "400": "#2DD4BF",   // oklch(~0.79 0.15 175)
+      "500": "#14B8A6",   // oklch(~0.72 0.14 175)
+      "600": "#0D9488",   // oklch(~0.61 0.12 175)
+      "700": "#0F766E",   // oklch(~0.52 0.10 175)
+      "800": "#115E59",   // oklch(~0.43 0.08 175)
+      "900": "#134E4A",   // oklch(~0.38 0.06 175)
+      "950": "#042F2E"    // oklch(~0.25 0.04 175)
+    }
+  },
+
+
+  // ─── 2. GRAY (Blue-tinted slate) ───────────────────────────────────────────
+
+  "gray": {
+    "_description": "Blue-tinted slate — surfaces, borders, muted text. Hue ~220. The blue undertone is critical to the Vektora aesthetic; do NOT substitute pure neutral grays.",
+    "50":  "#F8FAFC",   // oklch(~0.98 0.005 250)
+    "100": "#F1F5F9",   // oklch(~0.97 0.007 250)
+    "200": "#E2E8F0",   // oklch(~0.93 0.012 250)
+    "300": "#CBD5E1",   // oklch(~0.87 0.022 250)
+    "400": "#94A3B8",   // oklch(~0.70 0.024 255)
+    "500": "#64748B",   // oklch(~0.55 0.032 255)
+    "600": "#475569",   // oklch(~0.45 0.040 258)
+    "700": "#334155",   // oklch(~0.37 0.044 260)
+    "800": "#1E293B",   // oklch(~0.27 0.032 264)
+    "900": "#0F172A",   // oklch(~0.19 0.037 265)
+    "950": "#020617",   // oklch(~0.12 0.030 264)
+
+    "_elevationMapDark": {
+      "_description": "Named surface stops for dark mode. Depth is conveyed through brightness, not shadows.",
+      "base":    "#080C16",   // Deepest — page background
+      "sidebar": "#0C1019",   // Slightly brighter — sidebar panel
+      "card":    "#111827",   // Card / panel surface
+      "raised":  "#1A2333",   // Hover rows, raised elements
+      "overlay": "#1F2D3D"    // Popover, dropdown, dialog content
+    },
+
+    "surface-input": "#0D111B"  // Input field background (dark mode) — between base and sidebar
+  },
+
+
+  // ─── 3. ACCENTS ────────────────────────────────────────────────────────────
+  // ALL v1 accents preserved + coral, purple, orange from Vektora
+
+  "accents": {
+
+    "destructive": {
+      "_purpose": "Delete / error actions (v1 carry-over)",
+      "light": "#ef4444",   // oklch(~0.577 0.245 27)
+      "dark":  "#f87171"    // oklch(~0.704 0.191 22)
+    },
+
+    "violet": {
+      "_purpose": "Running / in-progress status",
+      "400": "#a78bfa",     // oklch(~0.702 0.183 293)
+      "500": "#8b5cf6",     // oklch(~0.606 0.250 293)
+      "600": "#7c3aed"      // oklch(~0.541 0.267 293)
+    },
+
+    "emerald": {
+      "_purpose": "Success / completed status",
+      "400": "#34d399",     // oklch(~0.765 0.177 163)
+      "500": "#10b981",     // oklch(~0.696 0.170 163)
+      "600": "#059669"      // oklch(~0.640 0.157 163)
+    },
+
+    "rose": {
+      "_purpose": "Failed / error status, error displays",
+      "400": "#fb7185",     // oklch(~0.712 0.194 13)
+      "500": "#f43f5e",     // oklch(~0.645 0.246 16)
+      "600": "#e11d48"      // oklch(~0.586 0.253 17)
+    },
+
+    "amber": {
+      "_purpose": "Warning / cancelled status",
+      "400": "#fbbf24",     // oklch(~0.828 0.189 84)
+      "500": "#f59e0b",     // oklch(~0.769 0.188 70)
+      "600": "#d97706"      // oklch(~0.666 0.179 58)
+    },
+
+    "blue": {
+      "_purpose": "Info / low severity, bank-transfer badges",
+      "400": "#60a5fa",     // oklch(~0.707 0.165 254)
+      "500": "#3b82f6",     // oklch(~0.623 0.214 259)
+      "600": "#2563eb"      // oklch(~0.546 0.245 263)
+    },
+
+    "yellow": {
+      "_purpose": "Medium severity",
+      "400": "#facc15",     // oklch(~0.852 0.199 91)
+      "500": "#eab308",     // oklch(~0.795 0.184 86)
+      "600": "#ca8a04"      // oklch(~0.681 0.162 75)
+    },
+
+    "green": {
+      "_purpose": "Audit pass status, success",
+      "400": "#4ade80",     // oklch(~0.790 0.210 145)
+      "500": "#22c55e",     // oklch(~0.723 0.219 142)
+      "600": "#16a34a"      // oklch(~0.627 0.194 145)
+    },
+
+    "red": {
+      "_purpose": "Audit fail / high severity finding",
+      "400": "#f87171",     // oklch(~0.704 0.191 22)
+      "500": "#ef4444",     // oklch(~0.637 0.237 25)
+      "600": "#dc2626"      // oklch(~0.577 0.245 27)
+    },
+
+    // ── New from Vektora ──
+
+    "coral": {
+      "_purpose": "Spending category accent, chart segment",
+      "400": "#fb7185",
+      "500": "#f43f5e"
+    },
+
+    "purple": {
+      "_purpose": "Avatar accent, chart segment",
+      "400": "#c084fc",
+      "500": "#a855f7"
+    },
+
+    "orange": {
+      "_purpose": "Avatar accent, chart segment",
+      "400": "#fb923c",
+      "500": "#f97316"
+    }
+  },
+
+
+  // ─── 4. SEMANTIC TOKENS ────────────────────────────────────────────────────
+
+  "tokens": {
+
+    // ── 4a. DARK (default theme) ──────────────────────────────────────────
+
+    "dark": {
+      "_isDefault": true,
+
+      // ── Vektora-style surface elevation tokens ──
+      "background":           "#080C16",   // gray._elevationMapDark.base
+      "surface-sidebar":      "#0C1019",   // gray._elevationMapDark.sidebar
+      "surface-card":         "#111827",   // gray._elevationMapDark.card
+      "surface-raised":       "#1A2333",   // gray._elevationMapDark.raised
+      "surface-overlay":      "#1F2D3D",   // gray._elevationMapDark.overlay
+      "surface-input":        "#0D111B",   // gray.surface-input
+
+      // ── Text hierarchy ──
+      "text-primary":         "#F8FAFC",   // gray.50  — high-emphasis body text
+      "text-secondary":       "#94A3B8",   // gray.400 — labels, secondary info
+      "text-muted":           "#64748B",   // gray.500 — placeholders, captions
+      "text-disabled":        "#475569",   // gray.600 — disabled controls
+      "text-on-primary":      "#0F172A",   // gray.900 — text on chartreuse fills
+
+      // ── Borders ──
+      "border-default":       "#1E293B",   // gray.800
+      "border-subtle":        "#162031",   // between gray.900 and gray.800
+      "border-strong":        "#334155",   // gray.700
+
+      // ── Primary interactive (chartreuse) ──
+      "primary":              "#CCFF00",   // primary.400
+      "primary-hover":        "#DBFF55",   // primary.300
+      "primary-pressed":      "#A8D900",   // primary.500
+      "primary-muted":        "rgba(204, 255, 0, 0.10)",
+      "primary-glow":         "rgba(204, 255, 0, 0.30)",
+
+      // ── Secondary interactive (teal) ──
+      "secondary":            "#14B8A6",   // secondary.500
+      "secondary-hover":      "#2DD4BF",   // secondary.400
+      "secondary-muted":      "rgba(20, 184, 166, 0.15)",
+
+      // ── Status tokens ──
+      "status-success":       "#22C55E",   // green.500
+      "status-success-muted": "rgba(34, 197, 94, 0.12)",
+      "status-error":         "#EF4444",   // red.500
+      "status-error-muted":   "rgba(239, 68, 68, 0.12)",
+      "status-warning":       "#F59E0B",   // amber.500
+      "status-warning-muted": "rgba(245, 158, 11, 0.12)",
+      "status-info":          "#3B82F6",   // blue.500
+      "status-info-muted":    "rgba(59, 130, 246, 0.15)",
+
+      // ── Chart tokens ──
+      "chart-highlight":      "#CCFF00",   // primary.400
+      "chart-bar-idle":       "#1A2333",   // surface-raised
+      "chart-grid":           "rgba(148, 163, 184, 0.08)",
+      "chart-axis-label":     "#64748B",   // text-muted
+
+      // ── Focus ring ──
+      "ring":                 "rgba(204, 255, 0, 0.50)",
+
+      // ── Shadow base ──
+      "shadow-color":         "rgba(0, 0, 0, 0.60)",
+
+      // ── v1 compatibility tokens (for existing shadcn/ui components) ──
+      "foreground":                  "#F8FAFC",   // = text-primary
+      "card":                        "#111827",   // = surface-card
+      "card-foreground":             "#F8FAFC",   // = text-primary
+      "popover":                     "#1F2D3D",   // = surface-overlay
+      "popover-foreground":          "#F8FAFC",   // = text-primary
+      "primary-foreground":          "#0F172A",   // = text-on-primary (dark text on chartreuse)
+      "secondary-foreground":        "#F8FAFC",   // = text-primary (light text on teal)
+      "muted":                       "#1E293B",   // = border-default / dark muted surface
+      "muted-foreground":            "#94A3B8",   // = text-secondary
+      "accent":                      "#1A2333",   // = surface-raised
+      "accent-foreground":           "#F8FAFC",   // = text-primary
+      "destructive":                 "#f87171",   // lighter red for dark bg contrast
+      "border":                      "#1E293B",   // = border-default
+      "input":                       "#1E293B",   // = border-default (input border color)
+
+      // ── Sidebar compat tokens ──
+      "sidebar":                     "#0C1019",   // = surface-sidebar
+      "sidebar-foreground":          "#F8FAFC",   // = text-primary
+      "sidebar-primary":             "#CCFF00",   // = primary.400
+      "sidebar-primary-foreground":  "#0F172A",   // = text-on-primary
+      "sidebar-accent":              "#1A2333",   // = surface-raised
+      "sidebar-accent-foreground":   "#F8FAFC",   // = text-primary
+      "sidebar-border":              "#162031",   // = border-subtle
+      "sidebar-ring":                "rgba(204, 255, 0, 0.50)",
+
+      // ── Chart compat tokens (numbered, for shadcn chart component) ──
+      "chart-1":                     "#CCFF00",   // primary — chartreuse
+      "chart-2":                     "#14B8A6",   // secondary — teal
+      "chart-3":                     "#F59E0B",   // amber
+      "chart-4":                     "#A855F7",   // purple
+      "chart-5":                     "#F43F5E"    // coral/rose
+    },
+
+
+    // ── 4b. LIGHT ─────────────────────────────────────────────────────────
+
+    "light": {
+      "_isDefault": false,
+
+      // ── Surfaces (inverted to white / light gray) ──
+      "background":           "#F8FAFC",   // gray.50
+      "surface-sidebar":      "#FFFFFF",
+      "surface-card":         "#FFFFFF",
+      "surface-raised":       "#F1F5F9",   // gray.100
+      "surface-overlay":      "#FFFFFF",
+      "surface-input":        "#F1F5F9",   // gray.100
+
+      // ── Text hierarchy ──
+      "text-primary":         "#0F172A",   // gray.900
+      "text-secondary":       "#475569",   // gray.600
+      "text-muted":           "#94A3B8",   // gray.400
+      "text-disabled":        "#CBD5E1",   // gray.300
+      "text-on-primary":      "#0F172A",   // gray.900 — chartreuse is light enough for dark text
+
+      // ── Borders ──
+      "border-default":       "#E2E8F0",   // gray.200
+      "border-subtle":        "#F1F5F9",   // gray.100
+      "border-strong":        "#CBD5E1",   // gray.300
+
+      // ── Primary interactive (darkened chartreuse for legibility on white) ──
+      "primary":              "#84B300",   // primary.600
+      "primary-hover":        "#628A00",   // primary.700
+      "primary-pressed":      "#456300",   // primary.800
+      "primary-muted":        "rgba(132, 179, 0, 0.10)",
+      "primary-glow":         "rgba(132, 179, 0, 0.25)",
+
+      // ── Secondary interactive (darkened teal) ──
+      "secondary":            "#0D9488",   // secondary.600
+      "secondary-hover":      "#0F766E",   // secondary.700
+      "secondary-muted":      "rgba(13, 148, 136, 0.10)",
+
+      // ── Status tokens (shifted to 600 weight for white-bg contrast) ──
+      "status-success":       "#16A34A",   // green.600
+      "status-success-muted": "rgba(22, 163, 74, 0.10)",
+      "status-error":         "#DC2626",   // red.600
+      "status-error-muted":   "rgba(220, 38, 38, 0.10)",
+      "status-warning":       "#D97706",   // amber.600
+      "status-warning-muted": "rgba(217, 119, 6, 0.10)",
+      "status-info":          "#2563EB",   // blue.600
+      "status-info-muted":    "rgba(37, 99, 235, 0.10)",
+
+      // ── Chart tokens ──
+      "chart-highlight":      "#84B300",   // primary.600
+      "chart-bar-idle":       "#E2E8F0",   // gray.200
+      "chart-grid":           "rgba(15, 23, 42, 0.06)",
+      "chart-axis-label":     "#94A3B8",   // gray.400
+
+      // ── Focus ring ──
+      "ring":                 "rgba(132, 179, 0, 0.50)",
+
+      // ── Shadow base ──
+      "shadow-color":         "rgba(15, 23, 42, 0.08)",
+
+      // ── v1 compatibility tokens ──
+      "foreground":                  "#0F172A",
+      "card":                        "#FFFFFF",
+      "card-foreground":             "#0F172A",
+      "popover":                     "#FFFFFF",
+      "popover-foreground":          "#0F172A",
+      "primary-foreground":          "#0F172A",   // dark text on light chartreuse
+      "secondary-foreground":        "#FFFFFF",   // white text on teal
+      "muted":                       "#F1F5F9",
+      "muted-foreground":            "#64748B",   // gray.500
+      "accent":                      "#F1F5F9",
+      "accent-foreground":           "#0F172A",
+      "destructive":                 "#ef4444",   // red.500 (brighter, sufficient contrast on white)
+      "border":                      "#E2E8F0",
+      "input":                       "#E2E8F0",
+
+      // ── Sidebar compat tokens ──
+      "sidebar":                     "#FFFFFF",
+      "sidebar-foreground":          "#0F172A",
+      "sidebar-primary":             "#84B300",   // primary.600
+      "sidebar-primary-foreground":  "#0F172A",
+      "sidebar-accent":              "#F1F5F9",
+      "sidebar-accent-foreground":   "#0F172A",
+      "sidebar-border":              "#E2E8F0",
+      "sidebar-ring":                "rgba(132, 179, 0, 0.50)",
+
+      // ── Chart compat tokens ──
+      "chart-1":                     "#84B300",   // primary.600
+      "chart-2":                     "#0D9488",   // secondary.600
+      "chart-3":                     "#D97706",   // amber.600
+      "chart-4":                     "#7C3AED",   // violet.600 (darker for white bg)
+      "chart-5":                     "#E11D48"    // rose.600
+    }
+  },
+
+
+  // ─── 5. TYPOGRAPHY ─────────────────────────────────────────────────────────
+
+  "typography": {
+    "fontFamilies": {
+      "_note": "Repo-Ninja ships Geist fonts; we keep them rather than switching to Inter/JetBrains Mono from Vektora",
+      "sans": "Geist Sans, system-ui, -apple-system, sans-serif",
+      "mono": "Geist Mono, ui-monospace, SFMono-Regular, monospace"
+    },
+
+    "scale": {
+      "_unit": "rem (1rem = 16px)",
+      "2xs":  { "size": "0.625rem",  "lineHeight": "0.875rem", "_px": 10, "_note": "From Vektora — section labels, uppercase headers" },
+      "xs":   { "size": "0.75rem",   "lineHeight": "1rem",     "_px": 12 },
+      "sm":   { "size": "0.875rem",  "lineHeight": "1.25rem",  "_px": 14 },
+      "base": { "size": "1rem",      "lineHeight": "1.5rem",   "_px": 16 },
+      "lg":   { "size": "1.125rem",  "lineHeight": "1.75rem",  "_px": 18 },
+      "xl":   { "size": "1.25rem",   "lineHeight": "1.75rem",  "_px": 20 },
+      "2xl":  { "size": "1.5rem",    "lineHeight": "2rem",     "_px": 24 },
+      "3xl":  { "size": "1.875rem",  "lineHeight": "2.25rem",  "_px": 30 },
+      "4xl":  { "size": "2.25rem",   "lineHeight": "2.5rem",   "_px": 36 },
+      "5xl":  { "size": "3rem",      "lineHeight": "1",        "_px": 48 }
+    },
+
+    "weights": {
+      "normal":   400,
+      "medium":   500,
+      "semibold": 600,
+      "bold":     700
+    },
+
+    "features": {
+      "_description": "OpenType features applied globally",
+      "rlig": 1,
+      "calt": 1,
+      "tnum": "Used on tabular numeric displays (scores, counts, monetary values, metrics)",
+      "letterSpacing": {
+        "_note": "Merged from Vektora for section header treatments",
+        "tight":  "-0.025em",
+        "normal": "0",
+        "wide":   "0.05em",
+        "wider":  "0.1em"
+      }
+    },
+
+    "_usage": {
+      "_note": "Merged from Vektora _usage map, adapted for Repo-Ninja pages",
+      "pageTitle":        { "size": "2xl",  "weight": "bold",     "color": "text-primary" },
+      "pageSubtitle":     { "size": "sm",   "weight": "normal",   "color": "text-secondary" },
+      "cardMetricValue":  { "size": "3xl",  "weight": "bold",     "color": "text-primary", "features": "tabular-nums" },
+      "cardLabel":        { "size": "xs",   "weight": "normal",   "color": "text-muted" },
+      "sectionHeader":    { "size": "2xs",  "weight": "semibold", "color": "text-muted", "transform": "uppercase", "tracking": "wider" },
+      "navItem":          { "size": "sm",   "weight": "medium",   "color": "text-secondary" },
+      "navItemActive":    { "size": "sm",   "weight": "semibold", "color": "text-on-primary" },
+      "tableHeader":      { "size": "sm",   "weight": "medium",   "color": "text-muted" },
+      "tableCell":        { "size": "sm",   "weight": "normal",   "color": "text-primary" },
+      "tableCellMono":    { "size": "xs",   "weight": "normal",   "color": "text-secondary", "font": "mono" },
+      "badgeText":        { "size": "xs",   "weight": "medium" },
+      "buttonText":       { "size": "sm",   "weight": "medium" },
+      "dialogTitle":      { "size": "lg",   "weight": "semibold", "color": "text-primary" },
+      "dialogDescription": { "size": "sm",  "weight": "normal",   "color": "text-secondary" },
+      "heroNumber":       { "size": "5xl",  "weight": "bold",     "color": "text-primary", "features": "tabular-nums" }
+    }
+  },
+
+
+  // ─── 6. SPACING ────────────────────────────────────────────────────────────
+
+  "spacing": {
+    "_unit": "rem",
+    "_description": "4px base grid (0.25rem increments). Same scale as v1.",
+    "0":    "0",
+    "0.5":  "0.125rem",
+    "1":    "0.25rem",
+    "1.5":  "0.375rem",
+    "2":    "0.5rem",
+    "2.5":  "0.625rem",
+    "3":    "0.75rem",
+    "3.5":  "0.875rem",
+    "4":    "1rem",
+    "5":    "1.25rem",
+    "6":    "1.5rem",
+    "7":    "1.75rem",
+    "8":    "2rem",
+    "10":   "2.5rem",
+    "12":   "3rem",
+    "14":   "3.5rem",
+    "16":   "4rem",
+    "20":   "5rem",
+    "24":   "6rem",
+
+    "_usage": {
+      "_note": "Annotations merged from Vektora's spacing usage map",
+      "badgePaddingY":      "0.5 (0.125rem)",
+      "badgePaddingX":      "2.5 (0.625rem)",
+      "navItemGap":         "1 (0.25rem)",
+      "tableCellPaddingXY": "2 (0.5rem) — v1 default; Vektora uses 3/4 for larger tables",
+      "buttonGap":          "2 (0.5rem)",
+      "inputPaddingX":      "3 (0.75rem)",
+      "cardPaddingInternal": "5 (1.25rem) — Vektora style; v1 uses 6 (1.5rem)",
+      "cardGap":            "4 (1rem) — between child sections",
+      "sidebarPadding":     "4 (1rem)",
+      "sidebarItemGap":     "1 (0.25rem)",
+      "sectionGap":         "6 (1.5rem)",
+      "pageGutter":         "6 (1.5rem) default, 8 (2rem) at 2xl",
+      "pageVerticalPadding": "6 (1.5rem)",
+      "sheetDialogPadding": "4 (1rem) — header/footer; 6 (1.5rem) — content"
+    }
+  },
+
+
+  // ─── 7. RADIUS ─────────────────────────────────────────────────────────────
+
+  "radius": {
+    "_base": "0.625rem",
+    "_description": "All radii derive from --radius (0.625rem = 10px). Same base as v1.",
+    "xs":   "2px",
+    "sm":   "calc(0.625rem - 4px)",
+    "md":   "calc(0.625rem - 2px)",
+    "lg":   "0.625rem",
+    "xl":   "calc(0.625rem + 4px)",
+    "2xl":  "calc(0.625rem + 8px)",
+    "3xl":  "calc(0.625rem + 12px)",
+    "4xl":  "calc(0.625rem + 16px)",
+    "full": "9999px",
+
+    "_computed": {
+      "xs":  "2px",
+      "sm":  "6px",
+      "md":  "8px",
+      "lg":  "10px",
+      "xl":  "14px",
+      "2xl": "18px",
+      "3xl": "22px",
+      "4xl": "26px"
+    },
+
+    "_usage": {
+      "_note": "Merged from Vektora radius usage annotations",
+      "cards":           "lg (10px) — v1 used xl; Vektora uses lg (12px). We keep v1 xl for Repo-Ninja cards.",
+      "buttons":         "md (8px)",
+      "inputs":          "md (8px)",
+      "badges":          "full (pill)",
+      "navActiveItem":   "md (8px)",
+      "tabTriggers":     "md (8px)",
+      "tabList":         "lg (10px)",
+      "dialogContent":   "lg (10px)",
+      "avatars":         "full (circle)",
+      "chartBars":       "xs top-only (2px on top-left, top-right)",
+      "progressBars":    "full (9999px)",
+      "selectItems":     "sm (6px)",
+      "dropdownItems":   "sm (6px)"
+    }
+  },
+
+
+  // ─── 8. SHADOWS ────────────────────────────────────────────────────────────
+  // Vektora style: minimal traditional shadows + glow effects.
+  // Uses var(--shadow-color) pattern for theme-adaptive shadow opacity.
+
+  "shadows": {
+    "_note": "Dark-mode UI relies primarily on borders and surface elevation, not drop shadows. Traditional shadows are used sparingly on overlays. Glow effects replace heavy shadow usage.",
+
+    // ── Traditional shadows (use var(--shadow-color) for theme adaptivity) ──
+    "sm":  "0 1px 2px var(--shadow-color)",
+    "md":  "0 4px 12px var(--shadow-color)",
+    "lg":  "0 8px 24px var(--shadow-color)",
+    "xl":  "0 12px 40px var(--shadow-color)",
+
+    // ── Glow effects (chartreuse primary) ──
+    "glow-primary":         "0 0 20px rgba(204, 255, 0, 0.25)",
+    "glow-primary-intense": "0 0 40px rgba(204, 255, 0, 0.40)",
+
+    // ── Featured card: left-edge glow + subtle ambient glow ──
+    "card-featured": {
+      "_description": "Featured metric card — lime inset left border + ambient glow. Use on 'highlighted' or 'featured' card variant.",
+      "value": "inset 2px 0 0 0 #CCFF00, 0 0 30px rgba(204, 255, 0, 0.15)"
+    },
+
+    // ── Credit-card style (heavy shadow for floating card visual) ──
+    "credit-card": "0 8px 32px rgba(0, 0, 0, 0.40)"
+  },
+
+
+  // ─── 9. GRADIENTS ──────────────────────────────────────────────────────────
+
+  "gradients": {
+
+    "featuredCardBorder": {
+      "_description": "Left-edge glow on the highlighted metric card — lime fading to transparent (used as a pseudo-element or border-image)",
+      "value": "linear-gradient(to bottom, #CCFF00, transparent)"
+    },
+
+    "pageBackground": {
+      "_description": "Very subtle radial vignette darkening at corners (dark mode only). Adds depth to the base background.",
+      "value": "radial-gradient(ellipse at 50% 0%, #0F172A 0%, #080C16 70%)"
+    }
+  },
+
+
+  // ─── 10. BREAKPOINTS ───────────────────────────────────────────────────────
+
+  "breakpoints": {
+    "_description": "Tailwind v4 defaults — mobile-first (min-width)",
+    "sm":  "640px",
+    "md":  "768px",
+    "lg":  "1024px",
+    "xl":  "1280px",
+    "2xl": "1536px"
+  },
+
+
+  // ─── 11. ANIMATIONS ────────────────────────────────────────────────────────
+  // MERGED: all v1 animations + Vektora additions
+
+  "animations": {
+
+    "_reducedMotion": "When prefers-reduced-motion: reduce is active, force all animation/transition durations to 0.01ms on every element including pseudo-elements.",
+
+    "defaults": {
+      "_note": "From Vektora — default transition for interactive elements",
+      "transitionDuration": "150ms",
+      "transitionEasing":   "cubic-bezier(0.4, 0, 0.2, 1)"
+    },
+
+    // ── v1 animations (preserved) ──
+
+    "fadeIn": {
+      "name": "fade-in",
+      "duration": "0.5s",
+      "easing": "ease-out",
+      "keyframes": {
+        "from": { "opacity": 0, "translateY": "10px" },
+        "to":   { "opacity": 1, "translateY": "0" }
+      }
+    },
+
+    "slideUp": {
+      "name": "slide-up",
+      "duration": "0.6s",
+      "easing": "ease-out",
+      "keyframes": {
+        "from": { "opacity": 0, "translateY": "20px" },
+        "to":   { "opacity": 1, "translateY": "0" }
+      }
+    },
+
+    "spin": {
+      "name": "spin",
+      "duration": "1s",
+      "easing": "linear",
+      "iterationCount": "infinite",
+      "keyframes": {
+        "from": { "rotate": "0deg" },
+        "to":   { "rotate": "360deg" }
+      }
+    },
+
+    "animateIn": {
+      "_description": "Popover / dropdown / dialog entrance (v1)",
+      "fadeIn":  { "from": "opacity: 0",            "to": "opacity: 1" },
+      "zoomIn":  { "from": "scale(0.95)",           "to": "scale(1)" },
+      "slideFromTop":    { "translateY": "-8px -> 0" },
+      "slideFromBottom": { "translateY": "8px -> 0" },
+      "slideFromLeft":   { "translateX": "-8px -> 0" },
+      "slideFromRight":  { "translateX": "8px -> 0" },
+      "duration": "150ms-200ms",
+      "easing": "ease-out"
+    },
+
+    "animateOut": {
+      "_description": "Popover / dropdown / dialog exit (reverse of animateIn)",
+      "fadeOut": { "from": "opacity: 1",  "to": "opacity: 0" },
+      "zoomOut": { "from": "scale(1)",    "to": "scale(0.95)" },
+      "duration": "150ms-200ms",
+      "easing": "ease-in"
+    },
+
+    "sheetIn": {
+      "duration": "500ms",
+      "easing": "ease-in-out",
+      "slideFromRight":  "translateX(100%) -> translateX(0)",
+      "slideFromLeft":   "translateX(-100%) -> translateX(0)",
+      "slideFromTop":    "translateY(-100%) -> translateY(0)",
+      "slideFromBottom": "translateY(100%) -> translateY(0)"
+    },
+
+    "sheetOut": {
+      "duration": "300ms",
+      "easing": "ease-in-out"
+    },
+
+    // ── Vektora animations (added) ──
+
+    "glowPulse": {
+      "_description": "Subtle pulsing glow on the featured card's lime border accent. Optional — enhance key metric cards.",
+      "name": "glow-pulse",
+      "duration": "2s",
+      "easing": "ease-in-out",
+      "iterationCount": "infinite",
+      "keyframes": {
+        "0%":   { "boxShadow": "0 0 20px rgba(204, 255, 0, 0.15)" },
+        "50%":  { "boxShadow": "0 0 30px rgba(204, 255, 0, 0.30)" },
+        "100%": { "boxShadow": "0 0 20px rgba(204, 255, 0, 0.15)" }
+      }
+    },
+
+    "chartBarGrow": {
+      "_description": "Bars grow up from zero height on initial chart render. Gives data a kinetic entrance.",
+      "name": "chart-bar-grow",
+      "duration": "600ms",
+      "easing": "cubic-bezier(0.34, 1.56, 0.64, 1)",
+      "keyframes": {
+        "from": { "scaleY": 0, "transformOrigin": "bottom" },
+        "to":   { "scaleY": 1 }
+      }
+    },
+
+    "sidebarCollapse": {
+      "_description": "Width transition when sidebar toggles between expanded (15rem) and collapsed (4rem) states.",
+      "name": "sidebar-collapse",
+      "duration": "250ms",
+      "easing": "cubic-bezier(0.4, 0, 0.2, 1)",
+      "property": "width"
+    },
+
+    "popoverIn": {
+      "_description": "Vektora-style popover entrance — faster and snappier than v1's animateIn",
+      "name": "popover-in",
+      "duration": "150ms",
+      "easing": "cubic-bezier(0.16, 1, 0.3, 1)",
+      "keyframes": {
+        "from": { "opacity": 0, "scale": 0.95 },
+        "to":   { "opacity": 1, "scale": 1 }
+      }
+    },
+
+    "popoverOut": {
+      "_description": "Vektora-style popover exit",
+      "name": "popover-out",
+      "duration": "100ms",
+      "easing": "ease-in",
+      "keyframes": {
+        "from": { "opacity": 1, "scale": 1 },
+        "to":   { "opacity": 0, "scale": 0.95 }
+      }
+    }
+  },
+
+
+  // ─── 12. COMPONENTS ────────────────────────────────────────────────────────
+  // ALL Repo-Ninja v1 components preserved with Vektora visual treatments applied.
+
+  "components": {
+
+    // ── Button ──────────────────────────────────────────────────────────────
+
+    "button": {
+      "base": {
+        "display": "inline-flex",
+        "alignment": "center",
+        "gap": "0.5rem",
+        "radius": "md",
+        "fontSize": "sm",
+        "fontWeight": "medium",
+        "cursor": "pointer",
+        "transition": "background 150ms, border-color 150ms, color 150ms, box-shadow 150ms",
+        "focusRing": "3px ring in primary at 50% opacity",
+        "disabled": { "pointerEvents": "none", "opacity": 0.5 }
+      },
+      "variants": {
+        "default": {
+          "_description": "Chartreuse primary CTA — solid fill with dark text",
+          "bg": "primary",
+          "text": "primary-foreground",
+          "hoverBg": "primary-hover",
+          "pressedBg": "primary-pressed",
+          "_dark": { "bg": "#CCFF00", "text": "#0F172A", "hoverBg": "#DBFF55" },
+          "_light": { "bg": "#84B300", "text": "#0F172A", "hoverBg": "#628A00" }
+        },
+        "destructive": {
+          "bg": "destructive",
+          "text": "white",
+          "hoverBg": "red-600",
+          "_dark": { "bg": "#f87171", "text": "#FFFFFF", "hoverBg": "#ef4444" },
+          "_light": { "bg": "#ef4444", "text": "#FFFFFF", "hoverBg": "#dc2626" }
+        },
+        "outline": {
+          "_description": "Transparent bg with border — Vektora hover = surface-raised + border-strong",
+          "bg": "transparent",
+          "border": "border-default",
+          "text": "text-secondary",
+          "hoverBg": "surface-raised",
+          "hoverBorderColor": "border-strong",
+          "hoverText": "text-primary",
+          "shadow": "none"
+        },
+        "secondary": {
+          "bg": "surface-raised",
+          "text": "text-secondary",
+          "hoverBg": "surface-overlay",
+          "hoverText": "text-primary"
+        },
+        "ghost": {
+          "_description": "No bg, no border — Vektora hover = surface-raised tint",
+          "bg": "transparent",
+          "text": "text-secondary",
+          "hoverBg": "surface-raised",
+          "hoverText": "text-primary"
+        },
+        "link": {
+          "bg": "transparent",
+          "text": "primary",
+          "decoration": "underline on hover",
+          "underlineOffset": "4px"
+        }
+      },
+      "sizes": {
+        "xs":      { "height": "1.5rem",  "px": "0.5rem",  "fontSize": "xs", "radius": "md", "gap": "0.25rem" },
+        "sm":      { "height": "2rem",    "px": "0.75rem", "radius": "md", "gap": "0.375rem" },
+        "default": { "height": "2.25rem", "px": "1rem",    "py": "0.5rem" },
+        "lg":      { "height": "2.5rem",  "px": "1.5rem",  "radius": "md" },
+        "icon":    { "size": "2.25rem" },
+        "icon-xs": { "size": "1.5rem",  "radius": "md" },
+        "icon-sm": { "size": "2rem" },
+        "icon-lg": { "size": "2.5rem" }
+      }
+    },
+
+
+    // ── Badge ───────────────────────────────────────────────────────────────
+
+    "badge": {
+      "base": {
+        "display": "inline-flex",
+        "alignment": "center",
+        "gap": "0.375rem",
+        "radius": "full",
+        "border": "transparent",
+        "px": "0.625rem",
+        "py": "0.125rem",
+        "fontSize": "xs",
+        "fontWeight": "medium",
+        "transition": "color, box-shadow"
+      },
+      "variants": {
+        "default": {
+          "_description": "Chartreuse primary fill with dark text",
+          "bg": "primary",
+          "text": "primary-foreground",
+          "_dark": { "bg": "#CCFF00", "text": "#0F172A" },
+          "_light": { "bg": "#84B300", "text": "#0F172A" }
+        },
+        "secondary": {
+          "bg": "surface-raised",
+          "text": "text-secondary",
+          "_dark": { "bg": "#1A2333", "text": "#94A3B8" },
+          "_light": { "bg": "#F1F5F9", "text": "#475569" }
+        },
+        "destructive": {
+          "bg": "destructive",
+          "text": "white",
+          "_dark": { "bg": "rgba(248, 113, 113, 0.60)", "text": "#FFFFFF" },
+          "_light": { "bg": "#ef4444", "text": "#FFFFFF" }
+        },
+        "outline": {
+          "border": "border-default",
+          "text": "text-primary",
+          "bg": "transparent"
+        },
+        "ghost": {
+          "bg": "transparent",
+          "text": "text-secondary"
+        },
+        "link": {
+          "text": "primary",
+          "decoration": "underline on hover"
+        }
+      }
+    },
+
+
+    // ── Card ────────────────────────────────────────────────────────────────
+
+    "card": {
+      "structure": {
+        "_description": "Dark elevation bg — uses surface-card. Depth via brightness, minimal shadow.",
+        "bg": "surface-card",
+        "text": "text-primary",
+        "radius": "xl",
+        "border": "border-default",
+        "shadow": "none",
+        "_note": "v1 used shadow: sm; v2 removes shadow in favor of elevation-based depth",
+        "padding": { "y": "1.25rem" },
+        "gap": "1rem"
+      },
+      "header": { "px": "1.25rem", "gap": "0.5rem" },
+      "title":  { "fontWeight": "semibold", "lineHeight": "none", "color": "text-primary" },
+      "description": { "fontSize": "sm", "color": "text-secondary" },
+      "content": { "px": "1.25rem" },
+      "footer":  { "px": "1.25rem", "display": "flex", "alignment": "center" },
+
+      "featuredVariant": {
+        "_description": "Highlighted card with left-edge glow (like Vektora 'Total Saving' card)",
+        "borderLeft": "2px solid primary (dark: #CCFF00, light: #84B300)",
+        "boxShadow": "shadows.card-featured",
+        "animation": "animations.glowPulse (optional)",
+        "_example": "Use for key metrics, hero stats, or promoted content"
+      }
+    },
+
+
+    // ── Input ───────────────────────────────────────────────────────────────
+
+    "input": {
+      "height": "2.25rem",
+      "radius": "md",
+      "border": "border-default",
+      "bg": "surface-input",
+      "_darkBg": "#0D111B",
+      "_lightBg": "#F1F5F9",
+      "px": "0.75rem",
+      "py": "0.25rem",
+      "fontSize": { "mobile": "base", "desktop": "sm" },
+      "shadow": "none",
+      "color": "text-primary",
+      "placeholder": "text-muted",
+      "focusRing": "3px ring in primary at 50% opacity",
+      "focusBorder": "primary",
+      "invalidRing": "status-error-muted",
+      "invalidBorder": "status-error"
+    },
+
+
+    // ── Textarea ────────────────────────────────────────────────────────────
+
+    "textarea": {
+      "minHeight": "4rem",
+      "radius": "md",
+      "border": "border-default",
+      "bg": "surface-input",
+      "_darkBg": "#0D111B",
+      "_lightBg": "#F1F5F9",
+      "px": "0.75rem",
+      "py": "0.5rem",
+      "fontSize": { "mobile": "base", "desktop": "sm" },
+      "shadow": "none",
+      "color": "text-primary",
+      "placeholder": "text-muted"
+    },
+
+
+    // ── Select ──────────────────────────────────────────────────────────────
+
+    "select": {
+      "trigger": {
+        "heights": { "default": "2.25rem", "sm": "2rem" },
+        "radius": "md",
+        "border": "border-default",
+        "bg": "surface-input",
+        "px": "0.75rem",
+        "shadow": "none",
+        "color": "text-primary",
+        "icon": "chevron-down at 50% opacity, text-muted"
+      },
+      "content": {
+        "bg": "surface-overlay",
+        "text": "text-primary",
+        "radius": "md",
+        "border": "border-default",
+        "shadow": "md",
+        "animation": "popoverIn / popoverOut"
+      },
+      "item": {
+        "radius": "sm",
+        "px": "0.5rem",
+        "py": "0.375rem",
+        "fontSize": "sm",
+        "hoverBg": "surface-raised",
+        "hoverText": "text-primary",
+        "indicator": "check icon, right-aligned"
+      }
+    },
+
+
+    // ── Checkbox ────────────────────────────────────────────────────────────
+
+    "checkbox": {
+      "size": "1rem",
+      "radius": "4px",
+      "border": "border-strong",
+      "shadow": "none",
+      "_darkBg": "transparent",
+      "checked": {
+        "_description": "Chartreuse fill when checked — dark text checkmark",
+        "bg": "primary",
+        "text": "primary-foreground",
+        "border": "primary",
+        "_dark": { "bg": "#CCFF00", "text": "#0F172A", "border": "#CCFF00" },
+        "_light": { "bg": "#84B300", "text": "#0F172A", "border": "#84B300" }
+      },
+      "indicator": "check icon, 0.875rem"
+    },
+
+
+    // ── Tabs ────────────────────────────────────────────────────────────────
+
+    "tabs": {
+      "variants": {
+        "default": {
+          "list": {
+            "bg": "surface-input",
+            "radius": "lg",
+            "height": "2.25rem",
+            "padding": "3px",
+            "border": "border-default"
+          },
+          "trigger": {
+            "fontSize": "sm",
+            "fontWeight": "medium",
+            "radius": "md",
+            "px": "0.5rem",
+            "py": "0.25rem",
+            "inactive": {
+              "bg": "transparent",
+              "text": "text-muted",
+              "hover": { "text": "text-secondary" }
+            },
+            "active": {
+              "bg": "surface-card",
+              "text": "text-primary",
+              "border": "border-default",
+              "shadow": "none"
+            }
+          }
+        },
+        "line": {
+          "list": { "bg": "transparent", "gap": "0.25rem" },
+          "trigger": {
+            "inactive": { "text": "text-muted" },
+            "active": {
+              "underline": "2px bar on bottom edge in primary color",
+              "text": "text-primary"
+            }
+          }
+        }
+      },
+      "content": { "flex": 1 }
+    },
+
+
+    // ── Table ───────────────────────────────────────────────────────────────
+
+    "table": {
+      "container": { "overflow": "x-auto" },
+      "root": { "width": "full", "fontSize": "sm", "captionSide": "bottom" },
+      "header": { "borderBottom": "border-default" },
+      "head": {
+        "height": "2.5rem",
+        "px": "0.5rem",
+        "text": "text-muted",
+        "fontWeight": "medium",
+        "whiteSpace": "nowrap"
+      },
+      "body": { "lastRowBorder": false },
+      "row": {
+        "_description": "Vektora hover: surface-raised tint with 150ms transition",
+        "borderBottom": "border-subtle",
+        "hoverBg": "surface-raised",
+        "selectedBg": "surface-raised",
+        "transition": "background 150ms"
+      },
+      "cell": {
+        "p": "0.5rem",
+        "verticalAlign": "middle",
+        "whiteSpace": "nowrap",
+        "color": "text-primary"
+      },
+      "footer": { "bg": "surface-raised", "borderTop": "border-default", "fontWeight": "medium" },
+      "caption": { "mt": "1rem", "fontSize": "sm", "text": "text-muted" }
+    },
+
+
+    // ── Dialog ──────────────────────────────────────────────────────────────
+
+    "dialog": {
+      "overlay": {
+        "bg": "rgba(0, 0, 0, 0.60)",
+        "position": "fixed inset-0",
+        "zIndex": 50,
+        "animation": "fade in/out",
+        "backdropBlur": "4px"
+      },
+      "content": {
+        "bg": "surface-overlay",
+        "text": "text-primary",
+        "radius": "lg",
+        "border": "border-default",
+        "shadow": "lg",
+        "p": "1.5rem",
+        "gap": "1rem",
+        "maxWidth": { "mobile": "calc(100% - 2rem)", "sm": "32rem" },
+        "position": "centered fixed",
+        "animation": "popoverIn / popoverOut, 200ms"
+      },
+      "header": { "layout": "flex column", "gap": "0.5rem", "textAlign": { "mobile": "center", "sm": "left" } },
+      "title":  { "fontSize": "lg", "fontWeight": "semibold", "color": "text-primary" },
+      "description": { "fontSize": "sm", "color": "text-secondary" },
+      "footer": { "layout": "flex column-reverse (mobile), row end-aligned (sm)", "gap": "0.5rem" },
+      "closeButton": {
+        "position": "absolute top-right",
+        "offset": "1rem",
+        "opacity": "0.7 -> 1.0 on hover",
+        "icon": "x-icon",
+        "color": "text-muted",
+        "hoverColor": "text-primary"
+      }
+    },
+
+
+    // ── Sheet ───────────────────────────────────────────────────────────────
+
+    "sheet": {
+      "overlay": {
+        "bg": "rgba(0, 0, 0, 0.60)",
+        "animation": "fade in/out",
+        "backdropBlur": "4px"
+      },
+      "content": {
+        "bg": "surface-overlay",
+        "text": "text-primary",
+        "shadow": "lg",
+        "gap": "1rem",
+        "sides": {
+          "right": { "border": "left border-subtle", "width": "75% (max 24rem on sm+)", "animation": "slide from right" },
+          "left":  { "border": "right border-subtle", "width": "75% (max 24rem on sm+)", "animation": "slide from left" },
+          "top":   { "border": "bottom border-subtle", "height": "auto", "animation": "slide from top" },
+          "bottom": { "border": "top border-subtle",   "height": "auto", "animation": "slide from bottom" }
+        },
+        "openDuration": "500ms",
+        "closeDuration": "300ms"
+      },
+      "header": { "p": "1rem", "gap": "0.375rem" },
+      "footer": { "p": "1rem", "marginTop": "auto" },
+      "title":  { "fontWeight": "semibold", "color": "text-primary" },
+      "description": { "fontSize": "sm", "color": "text-secondary" }
+    },
+
+
+    // ── Dropdown Menu ───────────────────────────────────────────────────────
+
+    "dropdownMenu": {
+      "content": {
+        "bg": "surface-overlay",
+        "text": "text-primary",
+        "radius": "md",
+        "border": "border-default",
+        "shadow": "md",
+        "p": "0.25rem",
+        "minWidth": "8rem",
+        "animation": "popoverIn / popoverOut"
+      },
+      "item": {
+        "radius": "sm",
+        "px": "0.5rem",
+        "py": "0.375rem",
+        "fontSize": "sm",
+        "hoverBg": "surface-raised",
+        "hoverText": "text-primary",
+        "iconColor": "text-muted",
+        "destructiveVariant": {
+          "text": "status-error",
+          "hoverBg": "status-error-muted",
+          "_dark": { "text": "#f87171", "hoverBg": "rgba(239, 68, 68, 0.12)" },
+          "_light": { "text": "#dc2626", "hoverBg": "rgba(220, 38, 38, 0.10)" }
+        }
+      },
+      "separator": { "bg": "border-subtle", "height": "1px", "mx": "-0.25rem", "my": "0.25rem" },
+      "label": { "fontSize": "sm", "fontWeight": "medium", "px": "0.5rem", "py": "0.375rem", "color": "text-secondary" },
+      "shortcut": { "fontSize": "xs", "color": "text-muted", "tracking": "widest", "ml": "auto" }
+    },
+
+
+    // ── Status Badge ────────────────────────────────────────────────────────
+
+    "statusBadge": {
+      "_description": "TRANSFORMED to Vektora style: leading dot + tinted translucent background. Used for agent task status display.",
+      "base": {
+        "display": "inline-flex",
+        "alignment": "center",
+        "gap": "0.375rem",
+        "radius": "full",
+        "px": "0.625rem",
+        "py": "0.125rem",
+        "fontSize": "xs",
+        "fontWeight": "medium",
+        "textTransform": "capitalize"
+      },
+      "dot": {
+        "_description": "Small leading circle indicator before the status text",
+        "size": "0.375rem",
+        "radius": "full",
+        "display": "inline-block"
+      },
+      "statusColorMap": {
+        "queued": {
+          "_description": "Muted / neutral — waiting",
+          "bg": "rgba(100, 116, 139, 0.12)",
+          "text": { "dark": "#94A3B8", "light": "#64748B" },
+          "dotColor": { "dark": "#64748B", "light": "#94A3B8" }
+        },
+        "running": {
+          "_description": "Violet — in progress",
+          "bg": "rgba(139, 92, 246, 0.12)",
+          "text": { "dark": "#a78bfa", "light": "#7c3aed" },
+          "dotColor": { "dark": "#8b5cf6", "light": "#8b5cf6" }
+        },
+        "completed": {
+          "_description": "Emerald/green — success",
+          "bg": "rgba(34, 197, 94, 0.12)",
+          "text": { "dark": "#34d399", "light": "#059669" },
+          "dotColor": { "dark": "#10b981", "light": "#10b981" }
+        },
+        "failed": {
+          "_description": "Rose/red — error",
+          "bg": "rgba(244, 63, 94, 0.12)",
+          "text": { "dark": "#fb7185", "light": "#e11d48" },
+          "dotColor": { "dark": "#f43f5e", "light": "#f43f5e" }
+        },
+        "cancelled": {
+          "_description": "Amber — warning / cancelled",
+          "bg": "rgba(245, 158, 11, 0.12)",
+          "text": { "dark": "#fbbf24", "light": "#d97706" },
+          "dotColor": { "dark": "#f59e0b", "light": "#f59e0b" }
+        }
+      }
+    },
+
+
+    // ── Finding Severity Badge ──────────────────────────────────────────────
+
+    "findingSeverity": {
+      "_description": "Badge used on code review finding cards. Filled with Vektora accent values.",
+      "severityColorMap": {
+        "high": {
+          "bg": { "dark": "#dc2626", "light": "#dc2626" },
+          "text": "#FFFFFF"
+        },
+        "medium": {
+          "bg": { "dark": "#f59e0b", "light": "#eab308" },
+          "text": "#0F172A"
+        },
+        "low": {
+          "bg": { "dark": "#3b82f6", "light": "#3b82f6" },
+          "text": "#FFFFFF"
+        },
+        "info": {
+          "bg": { "dark": "#475569", "light": "#94A3B8" },
+          "text": "#FFFFFF"
+        }
+      }
+    },
+
+
+    // ── Audit Check Status Badge ────────────────────────────────────────────
+
+    "auditCheckStatus": {
+      "_description": "Badge used on best-practices audit check rows. Same mapping, updated accent values.",
+      "statusColorMap": {
+        "pass": {
+          "bg": { "dark": "#16a34a", "light": "#16a34a" },
+          "text": "#FFFFFF"
+        },
+        "fail": {
+          "bg": { "dark": "#dc2626", "light": "#dc2626" },
+          "text": "#FFFFFF"
+        },
+        "warning": {
+          "bg": { "dark": "#f59e0b", "light": "#eab308" },
+          "text": "#0F172A"
+        }
+      }
+    },
+
+
+    // ── Nav Item ────────────────────────────────────────────────────────────
+
+    "navItem": {
+      "_description": "TRANSFORMED to Vektora style: active = solid primary fill with dark text. Collapsed sidebar shows icon only.",
+      "layout": "flex row, gap 0.75rem, items-center",
+      "height": "2.25rem",
+      "radius": "md",
+      "px": "0.75rem",
+      "py": "0.5rem",
+      "fontSize": "sm",
+      "fontWeight": "medium",
+      "transition": "background 150ms, color 150ms",
+
+      "active": {
+        "_description": "Solid chartreuse fill with dark text — high-contrast active state",
+        "bg": "primary",
+        "text": "text-on-primary",
+        "iconColor": "text-on-primary",
+        "fontWeight": "semibold",
+        "_dark": { "bg": "#CCFF00", "text": "#0F172A" },
+        "_light": { "bg": "#84B300", "text": "#0F172A" }
+      },
+      "inactive": {
+        "bg": "transparent",
+        "text": "text-secondary",
+        "iconColor": "text-muted",
+        "hoverBg": "surface-raised",
+        "hoverText": "text-primary"
+      },
+      "icon": { "size": "1.125rem" },
+
+      "sectionLabel": {
+        "_description": "Collapsible section headers above nav groups (from Vektora sidebar pattern)",
+        "fontSize": "2xs",
+        "fontWeight": "semibold",
+        "color": "text-muted",
+        "textTransform": "uppercase",
+        "letterSpacing": "wider",
+        "paddingTop": "1.5rem",
+        "paddingBottom": "0.5rem",
+        "toggle": "chevron icon for collapse/expand"
+      }
+    },
+
+
+    // ── Progress Bar ────────────────────────────────────────────────────────
+
+    "progressBar": {
+      "_description": "Used for category scores and compliance bars. Fill updated to chartreuse primary.",
+      "track": {
+        "height": { "thin": "0.5rem", "thick": "0.75rem" },
+        "bg": "surface-raised",
+        "radius": "full",
+        "overflow": "hidden",
+        "_dark": { "bg": "#1A2333" },
+        "_light": { "bg": "#E2E8F0" }
+      },
+      "fill": {
+        "bg": "primary",
+        "radius": "full",
+        "transition": "width 600ms cubic-bezier(0.34, 1.56, 0.64, 1)",
+        "widthRule": "percentage of value/max",
+        "_dark": { "bg": "#CCFF00" },
+        "_light": { "bg": "#84B300" }
+      }
+    },
+
+
+    // ── Toast ───────────────────────────────────────────────────────────────
+
+    "toast": {
+      "_description": "Sonner-based notification system. Updated to dark surface-overlay bg.",
+      "bg": "surface-overlay",
+      "text": "text-primary",
+      "border": "border-default",
+      "radius": "lg",
+      "shadow": "md",
+      "icons": {
+        "success": { "icon": "circle-check", "size": "1rem", "color": "status-success" },
+        "info":    { "icon": "info-circle",  "size": "1rem", "color": "status-info" },
+        "warning": { "icon": "triangle-alert","size": "1rem", "color": "status-warning" },
+        "error":   { "icon": "octagon-x",    "size": "1rem", "color": "status-error" },
+        "loading": { "icon": "loader-2",     "size": "1rem", "animation": "spin" }
+      }
+    },
+
+
+    // ── Theme Toggle ────────────────────────────────────────────────────────
+
+    "themeToggle": {
+      "_description": "Dark/light mode switch. Dark is the default theme in v2.",
+      "_defaultTheme": "dark",
+      "button": "ghost variant, icon size",
+      "sunIcon":  { "visible": "light mode", "transition": "rotate 0 -> -90, scale 1 -> 0" },
+      "moonIcon": { "visible": "dark mode",  "transition": "rotate 90 -> 0, scale 0 -> 1" }
+    },
+
+
+    // ── Finding Card ────────────────────────────────────────────────────────
+
+    "findingCard": {
+      "_description": "Card displaying a single code review finding. Updated to dark elevation surface.",
+      "bg": "surface-card",
+      "text": "text-primary",
+      "border": "border-default",
+      "radius": "xl",
+      "header": {
+        "layout": "horizontal row, gap 0.5rem, items-center",
+        "badges": ["findingSeverity badge", "outline category badge"],
+        "title": { "fontSize": "base", "fontWeight": "medium", "color": "text-primary" },
+        "paddingBottom": "compact"
+      },
+      "content": {
+        "description": { "fontSize": "sm", "color": "text-secondary" },
+        "fileLocation": { "fontSize": "xs", "fontFamily": "mono", "color": "text-muted" },
+        "suggestion": {
+          "bg": "surface-raised",
+          "radius": "md",
+          "p": "0.75rem",
+          "label": { "fontSize": "xs", "fontWeight": "medium", "color": "text-muted" },
+          "content": { "fontSize": "sm", "color": "text-primary" }
+        }
+      }
+    },
+
+
+    // ── Error Display ───────────────────────────────────────────────────────
+
+    "errorDisplay": {
+      "_description": "Inline error message container. Rose tinting pattern preserved from v1.",
+      "radius": "md",
+      "border": {
+        "dark":  "rgba(244, 63, 94, 0.20)",
+        "light": "rgba(244, 63, 94, 0.20)"
+      },
+      "bg": {
+        "dark":  "rgba(244, 63, 94, 0.10)",
+        "light": "rgba(244, 63, 94, 0.10)"
+      },
+      "text": {
+        "dark":  "#fb7185",
+        "light": "#e11d48"
+      },
+      "fontSize": "sm",
+      "p": "1rem"
+    }
+  },
+
+
+  // ─── 13. LAYOUT ────────────────────────────────────────────────────────────
+  // Updated to Vektora layout conventions.
+
+  "layout": {
+
+    "header": {
+      "_description": "Transparent bg, no bottom border — cleaner Vektora treatment. Header sits at top of main content area.",
+      "position": "sticky top-0",
+      "zIndex": 50,
+      "height": "3.5rem",
+      "borderBottom": "none",
+      "bg": "transparent",
+      "px": "1.5rem",
+      "content": "page-title (left) -- spacer -- icon buttons (right: theme toggle, notifications, user avatar)"
+    },
+
+    "sidebar": {
+      "_description": "Collapsible sidebar — 15rem expanded, 4rem collapsed (Vektora pattern).",
+      "width": { "expanded": "15rem", "collapsed": "4rem" },
+      "position": "sticky left, full height",
+      "borderRight": "border-subtle",
+      "bg": "surface-sidebar",
+      "minHeight": "100vh",
+      "zIndex": 40,
+      "collapseTransition": "animations.sidebarCollapse (250ms)",
+      "nav": { "layout": "flex column", "gap": "0.25rem", "p": "1rem" },
+      "collapseToggle": {
+        "position": "top-right of sidebar header",
+        "icon": "double-chevron-left (rotates 180 degrees when collapsed)",
+        "size": "1.5rem",
+        "color": "text-muted",
+        "hoverColor": "text-secondary"
+      },
+      "collapsedBehavior": {
+        "_description": "When collapsed, only icons are visible. Nav text is hidden. Tooltips show on hover.",
+        "showIconsOnly": true,
+        "tooltipOnHover": true,
+        "sectionLabelsHidden": true
+      }
+    },
+
+    "mainContent": {
+      "_description": "Fluid layout — no max-width cap (Vektora style).",
+      "flex": 1,
+      "px": { "default": "1.5rem", "2xl": "2rem" },
+      "py": "1.5rem",
+      "maxWidth": "none",
+      "animation": "fadeIn on load"
+    },
+
+    "pageWrapper": {
+      "_description": "Removed max-width cap from v1 (was 80rem). Content is now fluid.",
+      "maxWidth": "none",
+      "margin": "0"
+    },
+
+    "shell": {
+      "_description": "Root layout — sidebar + main content, full viewport height",
+      "display": "flex, horizontal",
+      "minHeight": "100vh"
+    }
+  },
+
+
+  // ─── 14. OPACITY CONVENTIONS ───────────────────────────────────────────────
+  // Merged from both v1 and Vektora conventions.
+
+  "opacityConventions": {
+    "_description": "Standard opacity modifiers used across the design system. Merged from v1 + Vektora.",
+
+    // ── From Vektora ──
+    "0.06-0.08": "Chart grid lines, very subtle dividers",
+    "0.10":      "Status badge tinted backgrounds, primary-muted backgrounds, nav active tint (v1 legacy)",
+    "0.12":      "Status badge backgrounds (Vektora standard — slightly stronger than 0.10)",
+    "0.15":      "Secondary-muted backgrounds, info status muted",
+
+    // ── Shared / v1 ──
+    "0.20":      "Accent borders, error ring (light mode), rose error display border",
+    "0.25":      "Primary glow (shadow), focus ring glow (Vektora)",
+    "0.30":      "Primary-glow token, intense primary glow (Vektora). v1 used /30 for dark input bg.",
+    "0.40":      "Intense overlay glow, credit card shadow",
+    "0.50":      "Focus ring, hover overlays, muted icon opacity, dialog overlay (v1)",
+    "0.60":      "Dark-mode heavy shadow base, dialog/sheet overlay (v2 -- slightly darker than v1)",
+    "0.70":      "Credit card detail text (white at 70%)",
+    "0.80":      "Secondary button hover (v1 legacy)",
+    "0.90":      "Primary/destructive button hover (v1 legacy)",
+    "0.95":      "Header background with backdrop blur (v1 legacy -- not used in v2 transparent header)"
+  }
+}
