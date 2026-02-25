@@ -139,7 +139,10 @@ export interface ReviewFinding {
   description: string;
   file?: string;
   line?: number;
+  codeSnippet?: string;
+  knowledgeSource?: string;
   suggestion?: string;
+  suggestedCode?: string;
 }
 
 // === Best Practices Audit Types ===

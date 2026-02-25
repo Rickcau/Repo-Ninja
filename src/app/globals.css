@@ -69,10 +69,27 @@
   --color-primary-glow-soft: var(--primary-glow-soft);
   --color-primary-glow-strong: var(--primary-glow-strong);
 
+  /* Status tokens */
+  --color-status-active: var(--status-active);
+  --color-status-success: var(--status-success);
+  --color-status-warning: var(--status-warning);
+  --color-status-critical: var(--status-critical);
+  --color-status-info: var(--status-info);
+
+  /* Progress tokens */
+  --color-progress-track: var(--progress-track);
+  --color-progress-fill: var(--progress-fill);
+
+  /* Skeleton tokens */
+  --color-skeleton-base: var(--skeleton-base);
+  --color-skeleton-shimmer: var(--skeleton-shimmer);
+
   /* Animations */
   --animate-fade-in: fade-in 0.5s ease-out;
   --animate-slide-up: slide-up 0.6s ease-out;
   --animate-glow-pulse: glow-pulse 2s ease-in-out infinite;
+  --animate-skeleton-shimmer: skeleton-shimmer 1.5s ease-in-out infinite;
+  --animate-pulse-glow: pulse-glow 2s ease-in-out infinite;
 
   @keyframes fade-in {
     0% { opacity: 0; transform: translateY(10px); }
@@ -87,6 +104,16 @@
   @keyframes glow-pulse {
     0%, 100% { box-shadow: inset 2px 0 0 0 var(--primary), 0 0 20px var(--primary-glow-soft); }
     50% { box-shadow: inset 2px 0 0 0 var(--primary), 0 0 30px var(--primary-glow-strong); }
+  }
+
+  @keyframes skeleton-shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+
+  @keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 8px var(--primary-glow-soft), 0 0 16px transparent; }
+    50% { box-shadow: 0 0 16px var(--primary-glow-strong), 0 0 32px var(--primary-glow-soft); }
   }
 }
 
@@ -134,6 +161,21 @@
   /* Glow tokens */
   --primary-glow-soft: rgba(132, 179, 0, 0.15);
   --primary-glow-strong: rgba(132, 179, 0, 0.30);
+
+  /* Status tokens */
+  --status-active: oklch(0.637 0.194 255.1);
+  --status-success: oklch(0.723 0.191 149.6);
+  --status-warning: oklch(0.769 0.168 70.1);
+  --status-critical: oklch(0.577 0.215 27.3);
+  --status-info: oklch(0.541 0.213 275.8);
+
+  /* Progress tokens */
+  --progress-track: var(--surface-raised);
+  --progress-fill: var(--primary);
+
+  /* Skeleton tokens */
+  --skeleton-base: var(--surface-card);
+  --skeleton-shimmer: #E2E8F0;
 }
 
 .dark {
@@ -179,6 +221,21 @@
   /* Glow tokens */
   --primary-glow-soft: rgba(204, 255, 0, 0.15);
   --primary-glow-strong: rgba(204, 255, 0, 0.30);
+
+  /* Status tokens */
+  --status-active: oklch(0.637 0.194 255.1);
+  --status-success: oklch(0.765 0.200 149.6);
+  --status-warning: oklch(0.769 0.168 70.1);
+  --status-critical: oklch(0.637 0.237 25.3);
+  --status-info: oklch(0.585 0.213 275.8);
+
+  /* Progress tokens */
+  --progress-track: var(--surface-raised);
+  --progress-fill: var(--primary);
+
+  /* Skeleton tokens */
+  --skeleton-base: var(--surface-card);
+  --skeleton-shimmer: #1E293B;
 }
 
 @layer base {

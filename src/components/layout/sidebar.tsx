@@ -12,9 +12,12 @@ import {
   ChevronsLeft,
   Search,
   Menu,
+  Settings,
+  History,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Sheet,
   SheetContent,
@@ -22,18 +25,52 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 
-const menuItems = [
+interface NavItemDef {
+  href: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  badge?: number | null;
+}
+
+const overviewItems: NavItemDef[] = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
+];
+
+const actionItems: NavItemDef[] = [
   { href: "/scaffold", label: "Scaffold", icon: Hammer },
-  { href: "/agents", label: "Agents", icon: Bot },
+  { href: "/agents", label: "Agents", icon: Bot, badge: 0 },
+  { href: "/reviews", label: "Reviews", icon: FileSearch, badge: 0 },
 ];
 
-const featureItems = [
-  { href: "/reviews", label: "Reviews", icon: FileSearch },
+const configureItems: NavItemDef[] = [
   { href: "/knowledge", label: "Knowledge Base", icon: BookOpen },
+  { href: "/history", label: "Activity", icon: History },
+  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
-const allNavItems = [...menuItems, ...featureItems];
+const navGroups = [
+  { label: "Overview", items: overviewItems },
+  { label: "Actions", items: actionItems },
+  { label: "Configure", items: configureItems },
+];
+
+const allNavItems = [
+  ...overviewItems,
+  ...actionItems,
+  ...configureItems,
+];
+
+function NavBadge({ count }: { count: number }) {
+  if (count <= 0) return null;
+  return (
+    <Badge
+      variant="secondary"
+      className="ml-auto h-5 min-w-[20px] px-1.5 text-[10px] font-semibold"
+    >
+      {count}
+    </Badge>
+  );
+}
 
 function SidebarNav({
   collapsed,
@@ -44,47 +81,35 @@ function SidebarNav({
 }) {
   return (
     <div className="flex flex-col gap-4">
-      {/* MENU section */}
-      <div>
-        {!collapsed && (
-          <p className="px-3 mb-1 text-[10px] uppercase font-semibold text-muted-foreground tracking-wider">
-            Menu
-          </p>
-        )}
-        <div className="flex flex-col gap-0.5">
-          {menuItems.map((item) => (
-            <NavItem
-              key={item.href}
-              href={item.href}
-              label={item.label}
-              icon={item.icon}
-              active={pathname === item.href}
-              collapsed={collapsed}
-            />
-          ))}
+      {navGroups.map((group) => (
+        <div key={group.label}>
+          {!collapsed && (
+            <p className="px-3 mb-1 text-[10px] uppercase font-semibold text-muted-foreground tracking-wider">
+              {group.label}
+            </p>
+          )}
+          <div className="flex flex-col gap-0.5">
+            {group.items.map((item) => (
+              <div key={item.href} className="relative flex items-center">
+                <NavItem
+                  href={item.href}
+                  label={item.label}
+                  icon={item.icon}
+                  active={pathname === item.href}
+                  collapsed={collapsed}
+                />
+                {!collapsed &&
+                  item.badge != null &&
+                  item.badge > 0 && (
+                    <div className="absolute right-2">
+                      <NavBadge count={item.badge} />
+                    </div>
+                  )}
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
-
-      {/* FEATURES section */}
-      <div>
-        {!collapsed && (
-          <p className="px-3 mb-1 text-[10px] uppercase font-semibold text-muted-foreground tracking-wider">
-            Features
-          </p>
-        )}
-        <div className="flex flex-col gap-0.5">
-          {featureItems.map((item) => (
-            <NavItem
-              key={item.href}
-              href={item.href}
-              label={item.label}
-              icon={item.icon}
-              active={pathname === item.href}
-              collapsed={collapsed}
-            />
-          ))}
-        </div>
-      </div>
+      ))}
     </div>
   );
 }
