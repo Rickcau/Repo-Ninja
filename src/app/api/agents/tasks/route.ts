@@ -7,7 +7,7 @@ export async function GET(request: Request) {
   const type = searchParams.get("type") as AgentTaskType | null;
   const status = searchParams.get("status") as AgentTaskStatus | null;
 
-  const tasks = listTasks({
+  const tasks = await listTasks({
     type: type || undefined,
     status: status || undefined,
   });

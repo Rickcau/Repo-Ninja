@@ -14,111 +14,6 @@ import type { ReviewHistoryEntry } from "@/components/reviews/review-history";
 import { Loader2 } from "lucide-react";
 import type { ReviewReport, AuditReport, ReviewType, ReviewScope } from "@/lib/types";
 
-// TODO: Replace with real API data
-const MOCK_REVIEW_REPORT: ReviewReport = {
-  id: "rev-mock-001",
-  repo: "acme/web-app",
-  reviewTypes: ["security", "general"],
-  overallScore: 7.2,
-  categoryScores: [
-    { category: "security", score: 6, maxScore: 10, issueCount: 3 },
-    { category: "general", score: 8, maxScore: 10, issueCount: 2 },
-  ],
-  findings: [
-    {
-      severity: "high",
-      category: "security",
-      title: "SQL Injection in user query",
-      description:
-        "User input is concatenated directly into SQL query string without parameterization.",
-      file: "src/api/users.ts",
-      line: 42,
-      codeSnippet: `const query = \`SELECT * FROM users WHERE id = '\${req.params.id}'\`;`,
-      knowledgeSource: "security.md > SQL Injection Prevention",
-      suggestion:
-        "Use parameterized queries to prevent SQL injection attacks.",
-      suggestedCode: `const query = "SELECT * FROM users WHERE id = $1";\nconst result = await db.query(query, [req.params.id]);`,
-    },
-    {
-      severity: "high",
-      category: "security",
-      title: "Missing authentication middleware",
-      description:
-        "The /api/admin routes do not have authentication middleware applied, allowing unauthenticated access.",
-      file: "src/api/admin/index.ts",
-      line: 8,
-      codeSnippet: `router.get("/admin/users", listUsers);`,
-      knowledgeSource: "auth-patterns.md > Route Protection",
-      suggestion: "Add authentication middleware to all admin routes.",
-      suggestedCode: `router.get("/admin/users", requireAuth, requireAdmin, listUsers);`,
-    },
-    {
-      severity: "medium",
-      category: "security",
-      title: "Sensitive data in error response",
-      description:
-        "Stack traces and internal error details are exposed to clients in production error responses.",
-      file: "src/middleware/error-handler.ts",
-      line: 15,
-      codeSnippet: `res.status(500).json({ error: err.message, stack: err.stack });`,
-      knowledgeSource: "security.md > Error Handling",
-      suggestion:
-        "Return generic error messages in production. Log full details server-side only.",
-    },
-    {
-      severity: "medium",
-      category: "general",
-      title: "Unused imports in component",
-      description:
-        "Several imports are declared but never used, increasing bundle size.",
-      file: "src/components/Dashboard.tsx",
-      line: 1,
-      codeSnippet: `import { useState, useEffect, useCallback, useMemo } from "react";`,
-      knowledgeSource: "best-practices.md > Clean Imports",
-      suggestion: "Remove unused imports: useCallback and useMemo.",
-      suggestedCode: `import { useState, useEffect } from "react";`,
-    },
-    {
-      severity: "low",
-      category: "general",
-      title: "Magic number in timeout",
-      description:
-        "A hardcoded timeout value of 30000ms is used without explanation.",
-      file: "src/services/api-client.ts",
-      line: 23,
-      codeSnippet: `const timeout = 30000;`,
-      knowledgeSource: "best-practices.md > Constants",
-      suggestion: "Extract magic numbers into named constants.",
-      suggestedCode: `const API_TIMEOUT_MS = 30_000;\nconst timeout = API_TIMEOUT_MS;`,
-    },
-    {
-      severity: "info",
-      category: "general",
-      title: "Consider adding JSDoc comments",
-      description:
-        "Public API functions lack JSDoc documentation, making the API harder to understand.",
-      file: "src/lib/utils.ts",
-      line: 10,
-      knowledgeSource: "code-style.md > Documentation",
-      suggestion: "Add JSDoc comments to exported functions.",
-    },
-    {
-      severity: "medium",
-      category: "security",
-      title: "JWT token stored in localStorage",
-      description:
-        "Authentication tokens stored in localStorage are vulnerable to XSS attacks.",
-      file: "src/lib/auth.ts",
-      line: 55,
-      codeSnippet: `localStorage.setItem("token", jwt);`,
-      knowledgeSource: "auth-patterns.md > Token Storage",
-      suggestion:
-        "Use httpOnly cookies for token storage instead of localStorage.",
-    },
-  ],
-  createdAt: new Date().toISOString(),
-};
-
 function ReviewsContent() {
   const searchParams = useSearchParams();
   const defaultTab = searchParams.get("tab") === "audit" ? "audit" : "review";
@@ -153,8 +48,6 @@ function ReviewsContent() {
     setReviewSubView("loading");
     setReviewProgress([]);
 
-    // Simulate progress steps
-    // TODO: Replace with real API data / streaming progress
     const steps = [
       "Connecting to repository...",
       "Fetching file tree...",
@@ -164,70 +57,32 @@ function ReviewsContent() {
     ];
 
     try {
-      // Simulate progressive loading
-      for (let i = 0; i < steps.length; i++) {
-        await new Promise((r) => setTimeout(r, 600));
-        setReviewProgress((prev) => [...prev, steps[i]]);
-      }
-
-      // Try the real API first
-      try {
-        const res = await fetch("/api/reviews/start", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data),
+      // Show progressive loading while the API works
+      const progressInterval = setInterval(() => {
+        setReviewProgress((prev) => {
+          if (prev.length < steps.length) {
+            return [...prev, steps[prev.length]];
+          }
+          return prev;
         });
-        const json = await res.json();
-        if (res.ok) {
-          setReviewReport(json);
-          setReviewSubView("results");
-          return;
-        }
-      } catch {
-        // API not available, fall through to mock data
-      }
+      }, 800);
 
-      // Use mock data for demo
-      // TODO: Replace with real API data
-      const mockReport: ReviewReport = {
-        ...MOCK_REVIEW_REPORT,
-        repo: data.repo,
-        reviewTypes: data.reviewTypes,
-        findings: MOCK_REVIEW_REPORT.findings.filter((f) =>
-          data.reviewTypes.includes(f.category)
-        ),
-      };
-
-      // Recalculate score based on filtered findings
-      const highCount = mockReport.findings.filter(
-        (f) => f.severity === "high"
-      ).length;
-      const medCount = mockReport.findings.filter(
-        (f) => f.severity === "medium"
-      ).length;
-      mockReport.overallScore = Math.max(
-        1,
-        10 - highCount * 1.5 - medCount * 0.5
-      );
-
-      mockReport.categoryScores = data.reviewTypes.map((type) => {
-        const typeFindings = mockReport.findings.filter(
-          (f) => f.category === type
-        );
-        return {
-          category: type,
-          score: Math.max(
-            2,
-            10 -
-              typeFindings.filter((f) => f.severity === "high").length * 2 -
-              typeFindings.filter((f) => f.severity === "medium").length
-          ),
-          maxScore: 10,
-          issueCount: typeFindings.length,
-        };
+      const res = await fetch("/api/reviews/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
       });
 
-      setReviewReport(mockReport);
+      clearInterval(progressInterval);
+      // Show all steps completed
+      setReviewProgress(steps);
+
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json.error || json.details || "Review failed");
+      }
+
+      setReviewReport(json);
       setReviewSubView("results");
     } catch (err) {
       setReviewError(
@@ -264,18 +119,32 @@ function ReviewsContent() {
   };
 
   const handleHistorySelect = useCallback(
-    (entry: ReviewHistoryEntry) => {
-      // TODO: Replace with real API call to fetch full review report
-      if (entry.status === "complete") {
-        const mockReport: ReviewReport = {
-          ...MOCK_REVIEW_REPORT,
-          id: entry.id,
-          repo: entry.repo,
-          overallScore: entry.score,
-        };
-        setReviewReport(mockReport);
-        setReviewSubView("results");
-        setActiveTab("review");
+    async (entry: ReviewHistoryEntry) => {
+      if (entry.status !== "complete") return;
+
+      // Fetch the full report from the API
+      const reportType = entry.reportType || "review";
+      const endpoint =
+        reportType === "audit"
+          ? `/api/reviews/${entry.id}?type=audit`
+          : `/api/reviews/${entry.id}`;
+
+      try {
+        const res = await fetch(endpoint);
+        if (!res.ok) return;
+        const report = await res.json();
+
+        if (reportType === "audit") {
+          setAuditReport(report);
+          setActiveTab("audit");
+        } else {
+          setReviewReport(report);
+          setReviewSubView("results");
+          setActiveTab("review");
+        }
+      } catch {
+        // If individual report fetch fails, just navigate to the tab
+        setActiveTab(reportType === "audit" ? "audit" : "review");
       }
     },
     []

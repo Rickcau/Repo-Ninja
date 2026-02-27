@@ -1,7 +1,9 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { SkeletonLoader } from "@/components/shared/skeleton-loader";
 import {
   CheckCircle2,
   Clock,
@@ -12,7 +14,6 @@ import {
   ChevronRight,
 } from "lucide-react";
 
-// TODO: Replace with real API data
 export interface ReviewHistoryEntry {
   id: string;
   repo: string;
@@ -25,6 +26,7 @@ export interface ReviewHistoryEntry {
     info: number;
   };
   score: number;
+  reportType?: "review" | "audit";
 }
 
 const statusConfig: Record<
@@ -36,60 +38,48 @@ const statusConfig: Record<
   failed: { icon: XCircle, color: "text-red-500", label: "Failed" },
 };
 
-// TODO: Replace with real API data
-const MOCK_HISTORY: ReviewHistoryEntry[] = [
-  {
-    id: "rev-001",
-    repo: "acme/web-app",
-    reviewTypes: ["security", "general"],
-    status: "complete",
-    date: "2026-02-25T14:30:00Z",
-    findings: { critical: 2, warning: 5, info: 3 },
-    score: 7.2,
-  },
-  {
-    id: "rev-002",
-    repo: "acme/api-service",
-    reviewTypes: ["performance"],
-    status: "complete",
-    date: "2026-02-24T10:15:00Z",
-    findings: { critical: 0, warning: 3, info: 8 },
-    score: 8.5,
-  },
-  {
-    id: "rev-003",
-    repo: "acme/mobile-sdk",
-    reviewTypes: ["security", "accessibility"],
-    status: "in-progress",
-    date: "2026-02-25T16:00:00Z",
-    findings: { critical: 0, warning: 0, info: 0 },
-    score: 0,
-  },
-  {
-    id: "rev-004",
-    repo: "acme/data-pipeline",
-    reviewTypes: ["general"],
-    status: "failed",
-    date: "2026-02-23T09:00:00Z",
-    findings: { critical: 0, warning: 0, info: 0 },
-    score: 0,
-  },
-  {
-    id: "rev-005",
-    repo: "acme/auth-lib",
-    reviewTypes: ["security"],
-    status: "complete",
-    date: "2026-02-22T11:45:00Z",
-    findings: { critical: 4, warning: 2, info: 1 },
-    score: 5.8,
-  },
-];
-
 interface ReviewHistoryProps {
   onSelectReview?: (entry: ReviewHistoryEntry) => void;
 }
 
 export function ReviewHistory({ onSelectReview }: ReviewHistoryProps) {
+  const [history, setHistory] = useState<ReviewHistoryEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/reviews/history")
+      .then((res) => (res.ok ? res.json() : { items: [] }))
+      .then((data) => {
+        const entries: ReviewHistoryEntry[] = (data.items || []).map(
+          (item: Record<string, unknown>) => {
+            const findings = (item.findings as Array<{ severity: string }>) || [];
+            return {
+              id: item.id as string,
+              repo: item.repo as string,
+              reviewTypes: (item.reviewTypes as string[]) || [],
+              status:
+                (item.status as string) === "running"
+                  ? ("in-progress" as const)
+                  : (item.status as string) === "failed"
+                  ? ("failed" as const)
+                  : ("complete" as const),
+              date: (item.createdAt as string) || new Date().toISOString(),
+              findings: {
+                critical: findings.filter((f) => f.severity === "high").length,
+                warning: findings.filter((f) => f.severity === "medium").length,
+                info: findings.filter((f) => f.severity === "low" || f.severity === "info").length,
+              },
+              score: (item.overallScore as number) || (item.complianceScore as number) || 0,
+              reportType: item.reportType as "review" | "audit" | undefined,
+            };
+          }
+        );
+        setHistory(entries);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
   const formatDate = (iso: string) => {
     const d = new Date(iso);
     return d.toLocaleDateString("en-US", {
@@ -101,6 +91,18 @@ export function ReviewHistory({ onSelectReview }: ReviewHistoryProps) {
     });
   };
 
+  if (loading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Review History</CardTitle>
+          <CardDescription>Past code reviews and their results.</CardDescription>
+        </CardHeader>
+        <CardContent><SkeletonLoader lines={4} /></CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -108,13 +110,13 @@ export function ReviewHistory({ onSelectReview }: ReviewHistoryProps) {
         <CardDescription>Past code reviews and their results.</CardDescription>
       </CardHeader>
       <CardContent>
-        {MOCK_HISTORY.length === 0 ? (
+        {history.length === 0 ? (
           <p className="text-sm text-muted-foreground py-8 text-center">
             No reviews yet. Start your first review above.
           </p>
         ) : (
           <div className="divide-y divide-border">
-            {MOCK_HISTORY.map((entry) => {
+            {history.map((entry) => {
               const status = statusConfig[entry.status];
               const StatusIcon = status.icon;
               const totalFindings =
@@ -130,57 +132,39 @@ export function ReviewHistory({ onSelectReview }: ReviewHistoryProps) {
                   className="w-full text-left py-4 first:pt-0 last:pb-0 hover:bg-muted/30 -mx-2 px-2 rounded-md transition-colors group"
                 >
                   <div className="flex items-center justify-between gap-4">
-                    {/* Left: repo info */}
                     <div className="flex-1 min-w-0 space-y-1">
                       <div className="flex items-center gap-2">
                         <StatusIcon className={`h-4 w-4 ${status.color} shrink-0`} />
-                        <span className="text-sm font-medium truncate">
-                          {entry.repo}
-                        </span>
+                        <span className="text-sm font-medium truncate">{entry.repo}</span>
                         <div className="flex gap-1 flex-wrap">
                           {entry.reviewTypes.map((t) => (
-                            <Badge
-                              key={t}
-                              variant="outline"
-                              className="text-[10px] px-1.5 py-0 h-5"
-                            >
-                              {t}
-                            </Badge>
+                            <Badge key={t} variant="outline" className="text-[10px] px-1.5 py-0 h-5">{t}</Badge>
                           ))}
                         </div>
                       </div>
-                      <p className="text-xs text-muted-foreground">
-                        {formatDate(entry.date)}
-                      </p>
+                      <p className="text-xs text-muted-foreground">{formatDate(entry.date)}</p>
                     </div>
-
-                    {/* Right: findings + score */}
                     <div className="flex items-center gap-4 shrink-0">
                       {entry.status === "complete" && (
                         <>
                           <div className="flex items-center gap-3 text-xs">
                             {entry.findings.critical > 0 && (
                               <span className="flex items-center gap-1 text-red-500">
-                                <ShieldAlert className="h-3 w-3" />
-                                {entry.findings.critical}
+                                <ShieldAlert className="h-3 w-3" />{entry.findings.critical}
                               </span>
                             )}
                             {entry.findings.warning > 0 && (
                               <span className="flex items-center gap-1 text-amber-500">
-                                <AlertTriangle className="h-3 w-3" />
-                                {entry.findings.warning}
+                                <AlertTriangle className="h-3 w-3" />{entry.findings.warning}
                               </span>
                             )}
                             {entry.findings.info > 0 && (
                               <span className="flex items-center gap-1 text-indigo-500">
-                                <Info className="h-3 w-3" />
-                                {entry.findings.info}
+                                <Info className="h-3 w-3" />{entry.findings.info}
                               </span>
                             )}
                             {totalFindings === 0 && (
-                              <span className="text-muted-foreground">
-                                No findings
-                              </span>
+                              <span className="text-muted-foreground">No findings</span>
                             )}
                           </div>
                           <div className="text-sm font-bold tabular-nums w-8 text-right">

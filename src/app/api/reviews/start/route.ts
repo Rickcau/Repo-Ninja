@@ -8,6 +8,7 @@ import { buildReviewPrompt } from "@/lib/copilot-sdk/prompts";
 import type { ReviewRequest, ReviewReport } from "@/lib/types";
 import { nanoid } from "nanoid";
 import { saveReport } from "../report-store";
+import { logWorkStart, logWorkComplete, logWorkFailure } from "@/lib/db/dal";
 
 const MAX_FILES_TO_REVIEW = 15;
 const MAX_FILE_SIZE = 50_000; // chars
@@ -29,7 +30,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid repo format. Use owner/repo" }, { status: 400 });
   }
 
+  let workId: string | undefined;
   try {
+    workId = await logWorkStart(
+      session.user?.email ?? undefined,
+      "code-review",
+      body.repo,
+      `Code review: ${body.reviewTypes.join(", ")} on ${body.repo}`
+    );
+
     const octokit = getOctokit(session.accessToken);
 
     // Get repo file tree
@@ -96,11 +105,14 @@ export async function POST(request: Request) {
     };
 
     // Store report for later retrieval
-    saveReport(report.id, report);
+    await saveReport(report.id, report);
+
+    await logWorkComplete(workId, { reportId: report.id, findingsCount: report.findings.length });
 
     return NextResponse.json(report);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
+    if (typeof workId !== "undefined") await logWorkFailure(workId, message);
     return NextResponse.json({ error: "Review failed", details: message }, { status: 500 });
   }
 }

@@ -28,27 +28,12 @@ const quickActions = [
   { href: "/reviews?tab=audit", label: "Run Audit", icon: ShieldCheck, variant: "outline" as const },
 ];
 
-// TODO: Replace with real API data
-const mockSparklineData = {
-  activeAgents: [1, 2, 1, 3, 2, 4, 3],
-  completedTasks: [5, 8, 12, 10, 15, 18, 22],
-  totalTasks: [8, 12, 16, 14, 20, 25, 30],
-  kbDocuments: [40, 42, 42, 45, 48, 50, 52],
-};
-
-// TODO: Replace with real API data
-const mockTrends = {
-  activeAgents: { value: "+2", direction: "up" as const },
-  completedTasks: { value: "+7", direction: "up" as const },
-  totalTasks: { value: "+5", direction: "up" as const },
-  kbDocuments: { value: "+4", direction: "up" as const },
-};
-
-// TODO: Replace with real API data
-const mockKbStats = {
-  chunkCount: 1_247,
-  syncStatus: "synced" as const,
-};
+interface DashboardStats {
+  activeAgents: number;
+  completedTasks: number;
+  totalTasks: number;
+  kbDocuments: number;
+}
 
 interface StatCardProps {
   href: string;
@@ -113,11 +98,16 @@ function StatCard({
 export default function DashboardPage() {
   const { data: session } = useSession();
   const [tasks, setTasks] = useState<AgentTask[]>([]);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
 
   useEffect(() => {
     fetch("/api/agents/tasks")
       .then((res) => res.json())
       .then((data) => setTasks(data.tasks || []))
+      .catch(() => {});
+    fetch("/api/dashboard/stats")
+      .then((res) => res.json())
+      .then((data) => setStats(data))
       .catch(() => {});
   }, []);
 
@@ -170,39 +160,35 @@ export default function DashboardPage() {
           href="/agents"
           icon={Bot}
           label="Active Agents"
-          value={runningCount}
-          sparklineData={mockSparklineData.activeAgents}
-          trend={mockTrends.activeAgents}
+          value={stats?.activeAgents ?? runningCount}
+          sparklineData={[0, 0, 0, 0, runningCount, runningCount, runningCount]}
+          trend={{ value: `${runningCount}`, direction: runningCount > 0 ? "up" : "down" }}
         />
         <StatCard
           href="/agents"
           icon={FileSearch}
           label="Completed Tasks"
-          value={completedCount}
-          sparklineData={mockSparklineData.completedTasks}
-          trend={mockTrends.completedTasks}
+          value={stats?.completedTasks ?? completedCount}
+          sparklineData={[0, 0, 0, 0, 0, completedCount, completedCount]}
+          trend={{ value: `+${completedCount}`, direction: "up" }}
           featured
         />
         <StatCard
           href="/agents"
           icon={Hammer}
           label="Total Tasks"
-          value={tasks.length}
-          sparklineData={mockSparklineData.totalTasks}
-          trend={mockTrends.totalTasks}
+          value={stats?.totalTasks ?? tasks.length}
+          sparklineData={[0, 0, 0, 0, 0, tasks.length, tasks.length]}
+          trend={{ value: `${tasks.length}`, direction: tasks.length > 0 ? "up" : "down" }}
         />
         <StatCard
           href="/knowledge"
           icon={BookOpen}
-          label="KB Documents"
-          value={mockKbStats.chunkCount.toLocaleString()}
-          sparklineData={mockSparklineData.kbDocuments}
-          trend={mockTrends.kbDocuments}
-          subtitle={
-            mockKbStats.syncStatus === "synced"
-              ? "Synced"
-              : "Syncing..."
-          }
+          label="KB Chunks"
+          value={(stats?.kbDocuments ?? 0).toLocaleString()}
+          sparklineData={[0, 0, 0, 0, 0, stats?.kbDocuments ?? 0, stats?.kbDocuments ?? 0]}
+          trend={{ value: `${stats?.kbDocuments ?? 0}`, direction: (stats?.kbDocuments ?? 0) > 0 ? "up" : "down" }}
+          subtitle="ChromaDB"
         />
       </div>
 

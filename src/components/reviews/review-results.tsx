@@ -66,14 +66,40 @@ export function ReviewResults({ report }: ReviewResultsProps) {
     }
   };
 
-  const handleCreateIssue = (finding: ReviewFinding) => {
-    // TODO: Replace with real API call to create a GitHub issue
-    console.log("Create issue for:", finding.title);
+  const handleCreateIssue = async (finding: ReviewFinding) => {
+    try {
+      const res = await fetch("/api/reviews/create-issue", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ repo: report.repo, finding }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert(`Issue created: ${data.issueUrl}`);
+      } else {
+        alert(`Failed to create issue: ${data.error}`);
+      }
+    } catch (err) {
+      alert(`Error: ${err instanceof Error ? err.message : "Unknown"}`);
+    }
   };
 
-  const handleApplyFix = (finding: ReviewFinding) => {
-    // TODO: Replace with real API call to apply the fix
-    console.log("Apply fix for:", finding.title);
+  const handleApplyFix = async (finding: ReviewFinding) => {
+    try {
+      const res = await fetch("/api/reviews/apply-fix", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ repo: report.repo, finding }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert(`Fix task started (ID: ${data.taskId}). Check the Agents page for progress.`);
+      } else {
+        alert(`Failed to apply fix: ${data.error}`);
+      }
+    } catch (err) {
+      alert(`Error: ${err instanceof Error ? err.message : "Unknown"}`);
+    }
   };
 
   return (

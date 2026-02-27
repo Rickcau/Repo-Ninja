@@ -11,6 +11,7 @@
   "dependencies": {
     "@github/copilot-sdk": "^0.1.26",
     "@react-pdf/renderer": "^4.3.2",
+    "better-sqlite3": "^12.6.2",
     "chromadb": "^3.3.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -32,6 +33,7 @@
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
+    "@types/better-sqlite3": "^7.6.13",
     "@types/jest": "^30.0.0",
     "@types/node": "^20",
     "@types/react": "^19",
