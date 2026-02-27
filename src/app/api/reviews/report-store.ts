@@ -1,22 +1,33 @@
+/**
+ * Report store — now backed by SQLite via the DAL.
+ * Replaces the previous in-memory Map implementation.
+ */
+import {
+  saveReviewReport as dalSaveReview,
+  getReviewReport as dalGetReview,
+  listReviewReports as dalListReviews,
+  saveAuditReport as dalSaveAudit,
+  getAuditReport as dalGetAudit,
+} from "@/lib/db/dal";
 import type { ReviewReport, AuditReport } from "@/lib/types";
 
-/**
- * Simple in-memory store for review/audit reports.
- * Reports are stored in a Map keyed by report ID.
- * In production, this would be replaced with a persistent store.
- */
-const reports = new Map<string, ReviewReport | AuditReport>();
-
-export function saveReport(id: string, report: ReviewReport | AuditReport): void {
-  reports.set(id, report);
+export async function saveReport(id: string, report: ReviewReport | AuditReport): Promise<void> {
+  if ("overallScore" in report) {
+    await dalSaveReview(report);
+  } else {
+    await dalSaveAudit(report);
+  }
 }
 
-export function getReport(id: string): ReviewReport | AuditReport | undefined {
-  return reports.get(id);
+export async function getReport(id: string): Promise<(ReviewReport | AuditReport) | undefined> {
+  const review = await dalGetReview(id);
+  if (review) return review;
+  const audit = await dalGetAudit(id);
+  if (audit) return audit;
+  return undefined;
 }
 
-export function listReports(): (ReviewReport | AuditReport)[] {
-  return Array.from(reports.values()).sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  );
+export async function listReports(): Promise<(ReviewReport | AuditReport)[]> {
+  const reviews = await dalListReviews(undefined, { page: 1, pageSize: 50 });
+  return reviews.items;
 }

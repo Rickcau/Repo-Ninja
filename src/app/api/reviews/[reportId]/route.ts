@@ -13,7 +13,7 @@ export async function GET(
   }
 
   const { reportId } = await params;
-  const report = getReport(reportId);
+  const report = await getReport(reportId);
 
   if (!report) {
     return NextResponse.json({ error: "Report not found" }, { status: 404 });

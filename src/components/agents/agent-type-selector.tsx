@@ -1,47 +1,50 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Bug, Code, ListChecks, FileText } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
-// TODO: Replace with real API data
-const agentTypes = [
-  {
-    id: "issue-solver" as const,
-    title: "Issue Solver",
-    description: "Reads a GitHub issue, queries the knowledge base for relevant patterns, and generates a fix as a pull request.",
-    icon: Bug,
-    kbDocuments: [
-      { name: "best-practices.md", section: "Error Handling" },
-      { name: "agent-instructions.md", section: "Issue Resolution Flow" },
-      { name: "architecture-patterns.md", section: "Repository Structure" },
-    ],
-  },
-  {
-    id: "code-writer" as const,
-    title: "Code Writer",
-    description: "Takes a natural-language description and scaffolds code grounded in your team's standards and templates.",
-    icon: Code,
-    kbDocuments: [
-      { name: "scaffolding-templates.md", section: "Project Templates" },
-      { name: "best-practices.md", section: "Code Style" },
-      { name: "ci-cd.md", section: "Pipeline Setup" },
-    ],
-  },
-  {
-    id: "custom-task" as const,
-    title: "Custom Task",
-    description: "Define a custom objective for the agent. It will select relevant KB documents automatically based on your prompt.",
-    icon: ListChecks,
-    kbDocuments: [
-      { name: "agent-instructions.md", section: "Custom Task Routing" },
-      { name: "responsible-ai.md", section: "Guardrails" },
-    ],
-  },
-] as const;
+interface KbDoc {
+  name: string;
+  section: string;
+  score?: number;
+}
 
-export type AgentTypeId = (typeof agentTypes)[number]["id"];
+interface AgentTypeEntry {
+  id: AgentTypeId;
+  title: string;
+  description: string;
+  icon: typeof Bug;
+  kbDocuments: KbDoc[];
+}
+
+const AGENT_TYPE_DEFS: Omit<AgentTypeEntry, "kbDocuments">[] = [
+  {
+    id: "issue-solver",
+    title: "Issue Solver",
+    description:
+      "Reads a GitHub issue, queries the knowledge base for relevant patterns, and generates a fix as a pull request.",
+    icon: Bug,
+  },
+  {
+    id: "code-writer",
+    title: "Code Writer",
+    description:
+      "Takes a natural-language description and scaffolds code grounded in your team's standards and templates.",
+    icon: Code,
+  },
+  {
+    id: "custom-task",
+    title: "Custom Task",
+    description:
+      "Define a custom objective for the agent. It will select relevant KB documents automatically based on your prompt.",
+    icon: ListChecks,
+  },
+];
+
+export type AgentTypeId = "issue-solver" | "code-writer" | "custom-task";
 
 interface AgentTypeSelectorProps {
   selected: AgentTypeId | null;
@@ -49,11 +52,29 @@ interface AgentTypeSelectorProps {
 }
 
 export function AgentTypeSelector({ selected, onSelect }: AgentTypeSelectorProps) {
+  const [kbMap, setKbMap] = useState<Record<string, KbDoc[]>>({});
+
+  useEffect(() => {
+    fetch("/api/agents/types")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.types) {
+          const map: Record<string, KbDoc[]> = {};
+          for (const t of data.types) {
+            map[t.id] = t.kbDocuments || [];
+          }
+          setKbMap(map);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      {agentTypes.map((agent) => {
+      {AGENT_TYPE_DEFS.map((agent) => {
         const isSelected = selected === agent.id;
         const Icon = agent.icon;
+        const docs = kbMap[agent.id] || [];
 
         return (
           <Card
@@ -84,23 +105,25 @@ export function AgentTypeSelector({ selected, onSelect }: AgentTypeSelectorProps
                 {agent.description}
               </p>
 
-              <div className="space-y-1.5">
-                <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-                  <FileText className="h-3 w-3" />
-                  KB Documents
-                </p>
-                <div className="flex flex-wrap gap-1">
-                  {agent.kbDocuments.map((doc) => (
-                    <Badge
-                      key={doc.name + doc.section}
-                      variant="outline"
-                      className="text-[10px] px-1.5 py-0"
-                    >
-                      {doc.name}
-                    </Badge>
-                  ))}
+              {docs.length > 0 && (
+                <div className="space-y-1.5">
+                  <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                    <FileText className="h-3 w-3" />
+                    KB Documents
+                  </p>
+                  <div className="flex flex-wrap gap-1">
+                    {docs.map((doc) => (
+                      <Badge
+                        key={doc.name + doc.section}
+                        variant="outline"
+                        className="text-[10px] px-1.5 py-0"
+                      >
+                        {doc.name}
+                      </Badge>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
             </CardContent>
           </Card>
         );
