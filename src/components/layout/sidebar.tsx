@@ -14,6 +14,7 @@ import {
   Menu,
   Settings,
   History,
+  FlaskConical,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -46,6 +47,7 @@ const configureItems: NavItemDef[] = [
   { href: "/knowledge", label: "Knowledge Base", icon: BookOpen },
   { href: "/history", label: "Activity", icon: History },
   { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/test-copilot", label: "SDK Test", icon: FlaskConical },
 ];
 
 const navGroups = [

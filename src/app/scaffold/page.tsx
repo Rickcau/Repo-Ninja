@@ -6,6 +6,8 @@ import { NaturalLanguageForm } from "@/components/scaffold/natural-language-form
 import { GuidedForm } from "@/components/scaffold/guided-form";
 import { ScaffoldPlanView } from "@/components/scaffold/scaffold-plan-view";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Check, Loader2, Search, Database, FileCode, Eye } from "lucide-react";
 import type { ScaffoldPlan } from "@/lib/types";
 
@@ -30,7 +32,6 @@ function ProgressIndicator({ currentStep }: { currentStep: number }) {
             const StepIcon = step.icon;
             const isActive = i === currentStep;
             const isComplete = i < currentStep;
-            const isPending = i > currentStep;
 
             return (
               <div
@@ -73,6 +74,8 @@ export default function ScaffoldPage() {
   const [progressStep, setProgressStep] = useState(-1);
   const [createError, setCreateError] = useState<string | null>(null);
   const [planError, setPlanError] = useState<string | null>(null);
+  const [repoName, setRepoName] = useState("");
+  const [visibility, setVisibility] = useState("private");
   const planPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const createPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -109,19 +112,32 @@ export default function ScaffoldPage() {
     setPlanError(null);
     setProgressStep(0);
 
+    // Include repoName in the API request
+    const requestBody = { ...body, repoName };
+
     const progressPromise = animateProgress();
 
     try {
       const res = await fetch("/api/scaffold/plan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify(requestBody),
       });
-      const data = await res.json();
+
+      let data: Record<string, unknown>;
+      try {
+        data = await res.json();
+      } catch {
+        await progressPromise;
+        setPlanError(`Server returned an invalid response (HTTP ${res.status}). Check the server logs for details.`);
+        setProgressStep(-1);
+        setIsGenerating(false);
+        return;
+      }
 
       if (!res.ok) {
         await progressPromise;
-        setPlanError(data.error || `Plan generation failed (HTTP ${res.status})`);
+        setPlanError((data.error as string) || `Plan generation failed (HTTP ${res.status})`);
         setProgressStep(-1);
         setIsGenerating(false);
         return;
@@ -147,6 +163,10 @@ export default function ScaffoldPage() {
               if (pollData.status === "completed" && pollData.plan) {
                 setPlan(pollData.plan);
                 setKnowledgeSources(pollData.knowledgeSources || []);
+                // Update repoName from the plan if the user didn't provide one
+                if (!repoName && pollData.plan.repoName) {
+                  setRepoName(pollData.plan.repoName);
+                }
               } else {
                 setPlanError(
                   pollData.error ||
@@ -165,8 +185,12 @@ export default function ScaffoldPage() {
       } else if (data.plan) {
         // Synchronous response fallback
         await progressPromise;
-        setPlan(data.plan);
-        setKnowledgeSources(data.knowledgeSources || []);
+        const planData = data.plan as ScaffoldPlan;
+        setPlan(planData);
+        setKnowledgeSources((data.knowledgeSources as string[]) || []);
+        if (!repoName && planData.repoName) {
+          setRepoName(planData.repoName);
+        }
         setProgressStep(-1);
         setIsGenerating(false);
       } else {
@@ -189,7 +213,7 @@ export default function ScaffoldPage() {
   const handleGuided = (options: Record<string, string>) =>
     generatePlan({ mode: "guided", options });
 
-  const handleCreate = async (repoName: string, isPrivate: boolean) => {
+  const handleCreate = async (createRepoName: string, isPrivate: boolean) => {
     if (!plan) return;
     setIsCreating(true);
     setCreateError(null);
@@ -197,7 +221,7 @@ export default function ScaffoldPage() {
       const res = await fetch("/api/scaffold/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan, repoName, isPrivate }),
+        body: JSON.stringify({ plan, repoName: createRepoName, isPrivate }),
       });
       const data = await res.json();
 
@@ -271,6 +295,38 @@ export default function ScaffoldPage() {
         <p className="text-sm text-muted-foreground mt-1">Create a new repository from templates or natural language descriptions.</p>
       </div>
 
+      {/* Repository settings — always visible */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="grid grid-cols-1 sm:grid-cols-[1fr_180px] gap-4">
+            <div>
+              <label className="text-sm font-medium">Repository Name</label>
+              <Input
+                value={repoName}
+                onChange={(e) => setRepoName(e.target.value)}
+                placeholder="my-awesome-project"
+                disabled={isGenerating}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                The repo will be created under your GitHub account.
+              </p>
+            </div>
+            <div>
+              <label className="text-sm font-medium">Visibility</label>
+              <Select value={visibility} onValueChange={setVisibility} disabled={isGenerating}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="private">Private</SelectItem>
+                  <SelectItem value="public">Public</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <Tabs defaultValue="natural-language">
         <TabsList>
           <TabsTrigger value="natural-language">Natural Language</TabsTrigger>
@@ -302,6 +358,8 @@ export default function ScaffoldPage() {
             knowledgeSources={knowledgeSources}
             onConfirm={handleCreate}
             isCreating={isCreating}
+            initialRepoName={repoName}
+            initialVisibility={visibility}
           />
           {createError && (
             <div className="rounded-md border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-600 dark:text-red-400">

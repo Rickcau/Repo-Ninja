@@ -152,11 +152,13 @@ interface ScaffoldPlanViewProps {
   knowledgeSources: string[];
   onConfirm: (repoName: string, isPrivate: boolean) => void;
   isCreating: boolean;
+  initialRepoName?: string;
+  initialVisibility?: string;
 }
 
-export function ScaffoldPlanView({ plan, knowledgeSources, onConfirm, isCreating }: ScaffoldPlanViewProps) {
-  const [repoName, setRepoName] = useState(plan.repoName || "");
-  const [visibility, setVisibility] = useState("private");
+export function ScaffoldPlanView({ plan, knowledgeSources, onConfirm, isCreating, initialRepoName, initialVisibility }: ScaffoldPlanViewProps) {
+  const [repoName, setRepoName] = useState(initialRepoName || plan.repoName || "");
+  const [visibility, setVisibility] = useState(initialVisibility || "private");
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(() => {
     const dirs = new Set<string>();
