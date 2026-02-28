@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { SkeletonLoader } from "@/components/shared/skeleton-loader";
+import { SkeletonText } from "@/components/shared/skeleton-loader";
 import {
   Github,
   BookOpen,
@@ -48,7 +48,7 @@ export function OnboardingChecklist({ userName }: OnboardingChecklistProps) {
     return (
       <Card>
         <CardHeader><CardTitle className="text-xl">Welcome!</CardTitle></CardHeader>
-        <CardContent><SkeletonLoader lines={6} /></CardContent>
+        <CardContent><SkeletonText lines={6} /></CardContent>
       </Card>
     );
   }

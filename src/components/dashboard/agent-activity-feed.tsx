@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { SkeletonLoader } from "@/components/shared/skeleton-loader";
+import { SkeletonText } from "@/components/shared/skeleton-loader";
 import {
   FileSearch,
   ShieldCheck,
@@ -98,7 +98,7 @@ export function AgentActivityFeed() {
     return (
       <Card>
         <CardHeader><CardTitle className="text-lg">Agent Activity</CardTitle></CardHeader>
-        <CardContent><SkeletonLoader lines={3} /></CardContent>
+        <CardContent><SkeletonText lines={3} /></CardContent>
       </Card>
     );
   }

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { SkeletonLoader } from "@/components/shared/skeleton-loader";
+import { SkeletonText } from "@/components/shared/skeleton-loader";
 import {
   CheckCircle2,
   Clock,
@@ -98,7 +98,7 @@ export function ReviewHistory({ onSelectReview }: ReviewHistoryProps) {
           <CardTitle>Review History</CardTitle>
           <CardDescription>Past code reviews and their results.</CardDescription>
         </CardHeader>
-        <CardContent><SkeletonLoader lines={4} /></CardContent>
+        <CardContent><SkeletonText lines={4} /></CardContent>
       </Card>
     );
   }

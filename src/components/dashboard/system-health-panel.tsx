@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { SkeletonLoader } from "@/components/shared/skeleton-loader";
+import { SkeletonText } from "@/components/shared/skeleton-loader";
 import {
   Database,
   Github,
@@ -47,7 +47,7 @@ export function SystemHealthPanel() {
     return (
       <Card>
         <CardHeader><CardTitle className="text-lg">System Health</CardTitle></CardHeader>
-        <CardContent><SkeletonLoader lines={4} /></CardContent>
+        <CardContent><SkeletonText lines={4} /></CardContent>
       </Card>
     );
   }

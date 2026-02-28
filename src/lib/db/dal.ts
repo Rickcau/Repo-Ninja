@@ -1,10 +1,8 @@
-import { nanoid } from "nanoid";
-import { getDb } from "./schema";
+import { prisma } from "./prisma";
 import type {
   AgentTask,
   AgentTaskType,
   AgentTaskStatus,
-  AgentTaskResult,
   ReviewReport,
   AuditReport,
   ScaffoldPlan,
@@ -24,24 +22,36 @@ interface PaginationOpts {
 function paginate(opts?: PaginationOpts) {
   const page = Math.max(1, opts?.page ?? 1);
   const pageSize = Math.min(100, Math.max(1, opts?.pageSize ?? 20));
-  return { limit: pageSize, offset: (page - 1) * pageSize };
+  return { take: pageSize, skip: (page - 1) * pageSize };
 }
 
 // ─── Agent Tasks ───────────────────────────────────────────────────
 
-function rowToAgentTask(row: Record<string, unknown>): AgentTask {
+function dbToAgentTask(row: {
+  id: string;
+  type: string;
+  status: string;
+  repo: string;
+  description: string;
+  branch: string | null;
+  prUrl: string | null;
+  progress: string;
+  result: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}): AgentTask {
   return {
-    id: row.id as string,
+    id: row.id,
     type: row.type as AgentTaskType,
     status: row.status as AgentTaskStatus,
-    repo: row.repo as string,
-    description: row.description as string,
-    branch: (row.branch as string) || undefined,
-    prUrl: (row.pr_url as string) || undefined,
-    progress: JSON.parse((row.progress as string) || "[]"),
-    result: row.result ? JSON.parse(row.result as string) : undefined,
-    createdAt: row.created_at as string,
-    updatedAt: row.updated_at as string,
+    repo: row.repo,
+    description: row.description,
+    branch: row.branch ?? undefined,
+    prUrl: row.prUrl ?? undefined,
+    progress: JSON.parse(row.progress),
+    result: row.result ? JSON.parse(row.result) : undefined,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
   };
 }
 
@@ -51,21 +61,20 @@ export async function createAgentTask(
   description: string,
   userId?: string
 ): Promise<AgentTask> {
-  const db = getDb();
-  const id = nanoid();
-  const now = new Date().toISOString();
-  db.prepare(
-    `INSERT INTO agent_tasks (id, type, status, repo, description, progress, user_id, created_at, updated_at)
-     VALUES (?, ?, 'queued', ?, ?, '[]', ?, ?, ?)`
-  ).run(id, type, repo, description, userId ?? null, now, now);
-  return rowToAgentTask(
-    db.prepare("SELECT * FROM agent_tasks WHERE id = ?").get(id) as Record<string, unknown>
-  );
+  const row = await prisma.agentTask.create({
+    data: {
+      type,
+      repo,
+      description,
+      userId: userId ?? null,
+    },
+  });
+  return dbToAgentTask(row);
 }
 
 export async function getAgentTask(id: string): Promise<AgentTask | null> {
-  const row = getDb().prepare("SELECT * FROM agent_tasks WHERE id = ?").get(id) as Record<string, unknown> | undefined;
-  return row ? rowToAgentTask(row) : null;
+  const row = await prisma.agentTask.findUnique({ where: { id } });
+  return row ? dbToAgentTask(row) : null;
 }
 
 export async function updateAgentTask(
@@ -74,68 +83,69 @@ export async function updateAgentTask(
     progressMessage?: string;
   }
 ): Promise<AgentTask | null> {
-  const db = getDb();
-  const existing = db.prepare("SELECT * FROM agent_tasks WHERE id = ?").get(id) as Record<string, unknown> | undefined;
+  const existing = await prisma.agentTask.findUnique({ where: { id } });
   if (!existing) return null;
 
-  const progress: string[] = JSON.parse((existing.progress as string) || "[]");
+  const progress: string[] = JSON.parse(existing.progress);
   if (updates.progressMessage) progress.push(updates.progressMessage);
 
-  db.prepare(
-    `UPDATE agent_tasks SET
-       status = COALESCE(?, status),
-       branch = COALESCE(?, branch),
-       pr_url = COALESCE(?, pr_url),
-       progress = ?,
-       result = COALESCE(?, result),
-       updated_at = ?
-     WHERE id = ?`
-  ).run(
-    updates.status ?? null,
-    updates.branch ?? null,
-    updates.prUrl ?? null,
-    JSON.stringify(progress),
-    updates.result ? JSON.stringify(updates.result) : null,
-    new Date().toISOString(),
-    id
-  );
-  return getAgentTask(id);
+  const row = await prisma.agentTask.update({
+    where: { id },
+    data: {
+      ...(updates.status !== undefined && { status: updates.status }),
+      ...(updates.branch !== undefined && { branch: updates.branch }),
+      ...(updates.prUrl !== undefined && { prUrl: updates.prUrl }),
+      progress: JSON.stringify(progress),
+      ...(updates.result !== undefined && { result: JSON.stringify(updates.result) }),
+    },
+  });
+  return dbToAgentTask(row);
 }
 
 export async function listAgentTasks(
   filter?: { type?: AgentTaskType; status?: AgentTaskStatus },
   pagination?: PaginationOpts
 ): Promise<PaginatedResult<AgentTask>> {
-  const db = getDb();
-  const conditions: string[] = [];
-  const params: unknown[] = [];
+  const where = {
+    ...(filter?.type && { type: filter.type }),
+    ...(filter?.status && { status: filter.status }),
+  };
+  const { take, skip } = paginate(pagination);
 
-  if (filter?.type) { conditions.push("type = ?"); params.push(filter.type); }
-  if (filter?.status) { conditions.push("status = ?"); params.push(filter.status); }
+  const [rows, total] = await Promise.all([
+    prisma.agentTask.findMany({
+      where,
+      orderBy: { updatedAt: "desc" },
+      take,
+      skip,
+    }),
+    prisma.agentTask.count({ where }),
+  ]);
 
-  const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
-  const { limit, offset } = paginate(pagination);
-
-  const total = (db.prepare(`SELECT COUNT(*) as count FROM agent_tasks ${where}`).get(...params) as { count: number }).count;
-  const rows = db.prepare(
-    `SELECT * FROM agent_tasks ${where} ORDER BY updated_at DESC LIMIT ? OFFSET ?`
-  ).all(...params, limit, offset) as Record<string, unknown>[];
-
-  return { items: rows.map(rowToAgentTask), total };
+  return { items: rows.map(dbToAgentTask), total };
 }
 
 // ─── Review Reports ────────────────────────────────────────────────
 
-function rowToReviewReport(row: Record<string, unknown>): ReviewReport & { status?: string } {
+function dbToReviewReport(row: {
+  id: string;
+  repo: string;
+  reviewTypes: string;
+  overallScore: number;
+  categoryScores: string;
+  findings: string;
+  status: string;
+  createdAt: Date;
+}): ReviewReport & { status?: string } {
   return {
-    id: row.id as string,
-    repo: row.repo as string,
-    reviewTypes: JSON.parse((row.review_types as string) || "[]"),
-    overallScore: row.overall_score as number,
-    categoryScores: JSON.parse((row.category_scores as string) || "[]"),
-    findings: JSON.parse((row.findings as string) || "[]"),
-    status: (row.status as string) || "completed",
-    createdAt: row.created_at as string,
+    id: row.id,
+    repo: row.repo,
+    reviewTypes: JSON.parse(row.reviewTypes),
+    overallScore: row.overallScore,
+    categoryScores: JSON.parse(row.categoryScores),
+    findings: JSON.parse(row.findings),
+    status: row.status,
+    createdAt: row.createdAt.toISOString(),
   };
 }
 
@@ -143,55 +153,76 @@ export async function saveReviewReport(
   report: ReviewReport & { status?: string },
   userId?: string
 ): Promise<void> {
-  getDb().prepare(
-    `INSERT OR REPLACE INTO review_reports (id, repo, review_types, overall_score, category_scores, findings, status, user_id, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-  ).run(
-    report.id,
-    report.repo,
-    JSON.stringify(report.reviewTypes),
-    report.overallScore,
-    JSON.stringify(report.categoryScores),
-    JSON.stringify(report.findings),
-    report.status ?? "completed",
-    userId ?? null,
-    report.createdAt
-  );
+  await prisma.reviewReport.upsert({
+    where: { id: report.id },
+    update: {
+      repo: report.repo,
+      reviewTypes: JSON.stringify(report.reviewTypes),
+      overallScore: report.overallScore,
+      categoryScores: JSON.stringify(report.categoryScores),
+      findings: JSON.stringify(report.findings),
+      status: report.status ?? "completed",
+    },
+    create: {
+      id: report.id,
+      repo: report.repo,
+      reviewTypes: JSON.stringify(report.reviewTypes),
+      overallScore: report.overallScore,
+      categoryScores: JSON.stringify(report.categoryScores),
+      findings: JSON.stringify(report.findings),
+      status: report.status ?? "completed",
+      userId: userId ?? null,
+      createdAt: report.createdAt ? new Date(report.createdAt) : new Date(),
+    },
+  });
 }
 
 export async function getReviewReport(id: string): Promise<(ReviewReport & { status?: string }) | null> {
-  const row = getDb().prepare("SELECT * FROM review_reports WHERE id = ?").get(id) as Record<string, unknown> | undefined;
-  return row ? rowToReviewReport(row) : null;
+  const row = await prisma.reviewReport.findUnique({ where: { id } });
+  return row ? dbToReviewReport(row) : null;
 }
 
 export async function listReviewReports(
   filter?: { repo?: string },
   pagination?: PaginationOpts
 ): Promise<PaginatedResult<ReviewReport & { status?: string }>> {
-  const db = getDb();
-  const conditions: string[] = [];
-  const params: unknown[] = [];
-  if (filter?.repo) { conditions.push("repo = ?"); params.push(filter.repo); }
-  const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
-  const { limit, offset } = paginate(pagination);
-  const total = (db.prepare(`SELECT COUNT(*) as count FROM review_reports ${where}`).get(...params) as { count: number }).count;
-  const rows = db.prepare(
-    `SELECT * FROM review_reports ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`
-  ).all(...params, limit, offset) as Record<string, unknown>[];
-  return { items: rows.map(rowToReviewReport), total };
+  const where = {
+    ...(filter?.repo && { repo: filter.repo }),
+  };
+  const { take, skip } = paginate(pagination);
+
+  const [rows, total] = await Promise.all([
+    prisma.reviewReport.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      take,
+      skip,
+    }),
+    prisma.reviewReport.count({ where }),
+  ]);
+
+  return { items: rows.map(dbToReviewReport), total };
 }
 
 // ─── Audit Reports ─────────────────────────────────────────────────
 
-function rowToAuditReport(row: Record<string, unknown>): AuditReport & { status?: string } {
+function dbToAuditReport(row: {
+  id: string;
+  repo: string;
+  complianceScore: number;
+  checks: string;
+  recommendations: string;
+  status: string;
+  createdAt: Date;
+}): AuditReport & { status?: string } {
   return {
-    id: row.id as string,
-    repo: row.repo as string,
-    complianceScore: row.compliance_score as number,
-    checks: JSON.parse((row.checks as string) || "[]"),
-    recommendations: JSON.parse((row.recommendations as string) || "[]"),
-    status: (row.status as string) || "completed",
-    createdAt: row.created_at as string,
+    id: row.id,
+    repo: row.repo,
+    complianceScore: row.complianceScore,
+    checks: JSON.parse(row.checks),
+    recommendations: JSON.parse(row.recommendations),
+    status: row.status,
+    createdAt: row.createdAt.toISOString(),
   };
 }
 
@@ -199,41 +230,53 @@ export async function saveAuditReport(
   report: AuditReport & { status?: string },
   userId?: string
 ): Promise<void> {
-  getDb().prepare(
-    `INSERT OR REPLACE INTO audit_reports (id, repo, compliance_score, checks, recommendations, status, user_id, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-  ).run(
-    report.id,
-    report.repo,
-    report.complianceScore,
-    JSON.stringify(report.checks),
-    JSON.stringify(report.recommendations),
-    report.status ?? "completed",
-    userId ?? null,
-    report.createdAt
-  );
+  await prisma.auditReport.upsert({
+    where: { id: report.id },
+    update: {
+      repo: report.repo,
+      complianceScore: report.complianceScore,
+      checks: JSON.stringify(report.checks),
+      recommendations: JSON.stringify(report.recommendations),
+      status: report.status ?? "completed",
+    },
+    create: {
+      id: report.id,
+      repo: report.repo,
+      complianceScore: report.complianceScore,
+      checks: JSON.stringify(report.checks),
+      recommendations: JSON.stringify(report.recommendations),
+      status: report.status ?? "completed",
+      userId: userId ?? null,
+      createdAt: report.createdAt ? new Date(report.createdAt) : new Date(),
+    },
+  });
 }
 
 export async function getAuditReport(id: string): Promise<(AuditReport & { status?: string }) | null> {
-  const row = getDb().prepare("SELECT * FROM audit_reports WHERE id = ?").get(id) as Record<string, unknown> | undefined;
-  return row ? rowToAuditReport(row) : null;
+  const row = await prisma.auditReport.findUnique({ where: { id } });
+  return row ? dbToAuditReport(row) : null;
 }
 
 export async function listAuditReports(
   filter?: { repo?: string },
   pagination?: PaginationOpts
 ): Promise<PaginatedResult<AuditReport & { status?: string }>> {
-  const db = getDb();
-  const conditions: string[] = [];
-  const params: unknown[] = [];
-  if (filter?.repo) { conditions.push("repo = ?"); params.push(filter.repo); }
-  const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
-  const { limit, offset } = paginate(pagination);
-  const total = (db.prepare(`SELECT COUNT(*) as count FROM audit_reports ${where}`).get(...params) as { count: number }).count;
-  const rows = db.prepare(
-    `SELECT * FROM audit_reports ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`
-  ).all(...params, limit, offset) as Record<string, unknown>[];
-  return { items: rows.map(rowToAuditReport), total };
+  const where = {
+    ...(filter?.repo && { repo: filter.repo }),
+  };
+  const { take, skip } = paginate(pagination);
+
+  const [rows, total] = await Promise.all([
+    prisma.auditReport.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      take,
+      skip,
+    }),
+    prisma.auditReport.count({ where }),
+  ]);
+
+  return { items: rows.map(dbToAuditReport), total };
 }
 
 // ─── Work History ──────────────────────────────────────────────────
@@ -261,18 +304,29 @@ export interface WorkHistoryEntry {
   metadata: Record<string, unknown>;
 }
 
-function rowToWorkHistory(row: Record<string, unknown>): WorkHistoryEntry {
+function dbToWorkHistory(row: {
+  id: string;
+  userId: string | null;
+  actionType: string;
+  entityId: string | null;
+  repo: string | null;
+  summary: string;
+  status: string;
+  startedAt: Date;
+  completedAt: Date | null;
+  metadata: string;
+}): WorkHistoryEntry {
   return {
-    id: row.id as string,
-    userId: (row.user_id as string) || undefined,
-    actionType: row.action_type as ActionType,
-    entityId: (row.entity_id as string) || undefined,
-    repo: (row.repo as string) || undefined,
-    summary: row.summary as string,
-    status: row.status as string,
-    startedAt: row.started_at as string,
-    completedAt: (row.completed_at as string) || undefined,
-    metadata: JSON.parse((row.metadata as string) || "{}"),
+    id: row.id,
+    userId: row.userId ?? undefined,
+    actionType: row.actionType as ActionType,
+    entityId: row.entityId ?? undefined,
+    repo: row.repo ?? undefined,
+    summary: row.summary,
+    status: row.status,
+    startedAt: row.startedAt.toISOString(),
+    completedAt: row.completedAt?.toISOString() ?? undefined,
+    metadata: JSON.parse(row.metadata),
   };
 }
 
@@ -283,50 +337,71 @@ export async function logWorkStart(
   summary: string,
   entityId?: string
 ): Promise<string> {
-  const db = getDb();
-  const id = nanoid();
-  const now = new Date().toISOString();
-  db.prepare(
-    `INSERT INTO work_history (id, user_id, action_type, entity_id, repo, summary, status, started_at, metadata)
-     VALUES (?, ?, ?, ?, ?, ?, 'started', ?, '{}')`
-  ).run(id, userId ?? null, actionType, entityId ?? null, repo ?? null, summary, now);
-  return id;
+  const row = await prisma.workHistory.create({
+    data: {
+      userId: userId ?? null,
+      actionType,
+      entityId: entityId ?? null,
+      repo: repo ?? null,
+      summary,
+      status: "started",
+    },
+  });
+  return row.id;
 }
 
 export async function logWorkComplete(workId: string, metadata?: Record<string, unknown>): Promise<void> {
-  getDb().prepare(
-    `UPDATE work_history SET status = 'completed', completed_at = ?, metadata = COALESCE(?, metadata) WHERE id = ?`
-  ).run(new Date().toISOString(), metadata ? JSON.stringify(metadata) : null, workId);
+  await prisma.workHistory.update({
+    where: { id: workId },
+    data: {
+      status: "completed",
+      completedAt: new Date(),
+      ...(metadata && { metadata: JSON.stringify(metadata) }),
+    },
+  });
 }
 
 export async function logWorkFailure(workId: string, error: string): Promise<void> {
-  getDb().prepare(
-    `UPDATE work_history SET status = 'failed', completed_at = ?, metadata = json_set(metadata, '$.error', ?) WHERE id = ?`
-  ).run(new Date().toISOString(), error, workId);
+  const existing = await prisma.workHistory.findUnique({ where: { id: workId } });
+  const existingMeta = existing ? JSON.parse(existing.metadata) : {};
+
+  await prisma.workHistory.update({
+    where: { id: workId },
+    data: {
+      status: "failed",
+      completedAt: new Date(),
+      metadata: JSON.stringify({ ...existingMeta, error }),
+    },
+  });
 }
 
 export async function listWorkHistory(
   filter?: { userId?: string; actionType?: ActionType; repo?: string },
   pagination?: PaginationOpts
 ): Promise<PaginatedResult<WorkHistoryEntry>> {
-  const db = getDb();
-  const conditions: string[] = [];
-  const params: unknown[] = [];
-  if (filter?.userId) { conditions.push("user_id = ?"); params.push(filter.userId); }
-  if (filter?.actionType) { conditions.push("action_type = ?"); params.push(filter.actionType); }
-  if (filter?.repo) { conditions.push("repo = ?"); params.push(filter.repo); }
-  const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
-  const { limit, offset } = paginate(pagination);
-  const total = (db.prepare(`SELECT COUNT(*) as count FROM work_history ${where}`).get(...params) as { count: number }).count;
-  const rows = db.prepare(
-    `SELECT * FROM work_history ${where} ORDER BY started_at DESC LIMIT ? OFFSET ?`
-  ).all(...params, limit, offset) as Record<string, unknown>[];
-  return { items: rows.map(rowToWorkHistory), total };
+  const where = {
+    ...(filter?.userId && { userId: filter.userId }),
+    ...(filter?.actionType && { actionType: filter.actionType }),
+    ...(filter?.repo && { repo: filter.repo }),
+  };
+  const { take, skip } = paginate(pagination);
+
+  const [rows, total] = await Promise.all([
+    prisma.workHistory.findMany({
+      where,
+      orderBy: { startedAt: "desc" },
+      take,
+      skip,
+    }),
+    prisma.workHistory.count({ where }),
+  ]);
+
+  return { items: rows.map(dbToWorkHistory), total };
 }
 
 export async function getWorkHistoryEntry(id: string): Promise<WorkHistoryEntry | null> {
-  const row = getDb().prepare("SELECT * FROM work_history WHERE id = ?").get(id) as Record<string, unknown> | undefined;
-  return row ? rowToWorkHistory(row) : null;
+  const row = await prisma.workHistory.findUnique({ where: { id } });
+  return row ? dbToWorkHistory(row) : null;
 }
 
 // ─── Scaffold Plans ────────────────────────────────────────────────
@@ -343,17 +418,27 @@ export interface ScaffoldPlanRecord {
   createdAt: string;
 }
 
-function rowToScaffoldPlan(row: Record<string, unknown>): ScaffoldPlanRecord {
+function dbToScaffoldPlan(row: {
+  id: string;
+  repo: string | null;
+  mode: string;
+  description: string | null;
+  plan: string;
+  status: string;
+  knowledgeSources: string;
+  userId: string | null;
+  createdAt: Date;
+}): ScaffoldPlanRecord {
   return {
-    id: row.id as string,
-    repo: (row.repo as string) || undefined,
-    mode: row.mode as string,
-    description: (row.description as string) || undefined,
-    plan: JSON.parse((row.plan as string) || "{}"),
-    status: row.status as string,
-    knowledgeSources: JSON.parse((row.knowledge_sources as string) || "[]"),
-    userId: (row.user_id as string) || undefined,
-    createdAt: row.created_at as string,
+    id: row.id,
+    repo: row.repo ?? undefined,
+    mode: row.mode,
+    description: row.description ?? undefined,
+    plan: JSON.parse(row.plan),
+    status: row.status,
+    knowledgeSources: JSON.parse(row.knowledgeSources),
+    userId: row.userId ?? undefined,
+    createdAt: row.createdAt.toISOString(),
   };
 }
 
@@ -366,19 +451,30 @@ export async function saveScaffoldPlan(
   status: string,
   userId?: string
 ): Promise<void> {
-  getDb().prepare(
-    `INSERT OR REPLACE INTO scaffold_plans (id, mode, description, plan, knowledge_sources, status, user_id, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-  ).run(
-    id, mode, description ?? null,
-    JSON.stringify(plan), JSON.stringify(knowledgeSources),
-    status, userId ?? null, new Date().toISOString()
-  );
+  await prisma.scaffoldPlan.upsert({
+    where: { id },
+    update: {
+      mode,
+      description: description ?? null,
+      plan: JSON.stringify(plan),
+      knowledgeSources: JSON.stringify(knowledgeSources),
+      status,
+    },
+    create: {
+      id,
+      mode,
+      description: description ?? null,
+      plan: JSON.stringify(plan),
+      knowledgeSources: JSON.stringify(knowledgeSources),
+      status,
+      userId: userId ?? null,
+    },
+  });
 }
 
 export async function getScaffoldPlan(id: string): Promise<ScaffoldPlanRecord | null> {
-  const row = getDb().prepare("SELECT * FROM scaffold_plans WHERE id = ?").get(id) as Record<string, unknown> | undefined;
-  return row ? rowToScaffoldPlan(row) : null;
+  const row = await prisma.scaffoldPlan.findUnique({ where: { id } });
+  return row ? dbToScaffoldPlan(row) : null;
 }
 
 export async function updateScaffoldPlanStatus(
@@ -387,24 +483,31 @@ export async function updateScaffoldPlanStatus(
   plan?: ScaffoldPlan,
   knowledgeSources?: string[]
 ): Promise<void> {
-  const sets = ["status = ?"];
-  const params: unknown[] = [status];
-  if (plan) { sets.push("plan = ?"); params.push(JSON.stringify(plan)); }
-  if (knowledgeSources) { sets.push("knowledge_sources = ?"); params.push(JSON.stringify(knowledgeSources)); }
-  params.push(id);
-  getDb().prepare(`UPDATE scaffold_plans SET ${sets.join(", ")} WHERE id = ?`).run(...params);
+  await prisma.scaffoldPlan.update({
+    where: { id },
+    data: {
+      status,
+      ...(plan && { plan: JSON.stringify(plan) }),
+      ...(knowledgeSources && { knowledgeSources: JSON.stringify(knowledgeSources) }),
+    },
+  });
 }
 
 export async function listScaffoldPlans(
   pagination?: PaginationOpts
 ): Promise<PaginatedResult<ScaffoldPlanRecord>> {
-  const db = getDb();
-  const { limit, offset } = paginate(pagination);
-  const total = (db.prepare("SELECT COUNT(*) as count FROM scaffold_plans").get() as { count: number }).count;
-  const rows = db.prepare(
-    "SELECT * FROM scaffold_plans ORDER BY created_at DESC LIMIT ? OFFSET ?"
-  ).all(limit, offset) as Record<string, unknown>[];
-  return { items: rows.map(rowToScaffoldPlan), total };
+  const { take, skip } = paginate(pagination);
+
+  const [rows, total] = await Promise.all([
+    prisma.scaffoldPlan.findMany({
+      orderBy: { createdAt: "desc" },
+      take,
+      skip,
+    }),
+    prisma.scaffoldPlan.count(),
+  ]);
+
+  return { items: rows.map(dbToScaffoldPlan), total };
 }
 
 // ─── Dashboard Stats ───────────────────────────────────────────────
@@ -419,25 +522,23 @@ export interface DashboardStats {
 }
 
 export async function getDashboardStats(): Promise<DashboardStats> {
-  const db = getDb();
-  const tasks = db.prepare(
-    `SELECT
-       COUNT(*) as total,
-       SUM(CASE WHEN status = 'running' THEN 1 ELSE 0 END) as running,
-       SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed
-     FROM agent_tasks`
-  ).get() as { total: number; running: number; completed: number };
-  const reviews = (db.prepare("SELECT COUNT(*) as count FROM review_reports").get() as { count: number }).count;
-  const audits = (db.prepare("SELECT COUNT(*) as count FROM audit_reports").get() as { count: number }).count;
-  const scaffolds = (db.prepare("SELECT COUNT(*) as count FROM scaffold_plans").get() as { count: number }).count;
+  const [totalTasks, runningTasks, completedTasks, totalReviews, totalAudits, totalScaffolds] =
+    await Promise.all([
+      prisma.agentTask.count(),
+      prisma.agentTask.count({ where: { status: "running" } }),
+      prisma.agentTask.count({ where: { status: "completed" } }),
+      prisma.reviewReport.count(),
+      prisma.auditReport.count(),
+      prisma.scaffoldPlan.count(),
+    ]);
 
   return {
-    activeAgents: tasks.running ?? 0,
-    completedTasks: tasks.completed ?? 0,
-    totalTasks: tasks.total ?? 0,
-    totalReviews: reviews,
-    totalAudits: audits,
-    totalScaffolds: scaffolds,
+    activeAgents: runningTasks,
+    completedTasks,
+    totalTasks,
+    totalReviews,
+    totalAudits,
+    totalScaffolds,
   };
 }
 
@@ -449,11 +550,17 @@ export async function getOnboardingStatus(): Promise<{
   hasScaffold: boolean;
   hasAgent: boolean;
 }> {
-  const db = getDb();
+  const [reviewCount, auditCount, scaffoldCount, agentCount] = await Promise.all([
+    prisma.reviewReport.count(),
+    prisma.auditReport.count(),
+    prisma.scaffoldPlan.count(),
+    prisma.agentTask.count(),
+  ]);
+
   return {
-    hasReview: ((db.prepare("SELECT COUNT(*) as c FROM review_reports").get() as { c: number }).c) > 0,
-    hasAudit: ((db.prepare("SELECT COUNT(*) as c FROM audit_reports").get() as { c: number }).c) > 0,
-    hasScaffold: ((db.prepare("SELECT COUNT(*) as c FROM scaffold_plans").get() as { c: number }).c) > 0,
-    hasAgent: ((db.prepare("SELECT COUNT(*) as c FROM agent_tasks").get() as { c: number }).c) > 0,
+    hasReview: reviewCount > 0,
+    hasAudit: auditCount > 0,
+    hasScaffold: scaffoldCount > 0,
+    hasAgent: agentCount > 0,
   };
 }
