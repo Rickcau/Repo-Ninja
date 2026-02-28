@@ -54,7 +54,10 @@ export async function POST(request: Request) {
 
       // Generate scaffold plan via Copilot SDK
       const prompt = buildScaffoldPrompt(description, knowledgeDocs);
-      const response = await askCopilot(accessToken, prompt);
+      const response = await askCopilot(accessToken, prompt, {
+        systemMessage: "You are Repo-Ninja, an expert at scaffolding new GitHub repositories. Always respond with valid JSON.",
+        timeoutMs: 180_000,
+      });
 
       if (taskRunner.isCancelled(planId)) return;
 
@@ -62,8 +65,9 @@ export async function POST(request: Request) {
       const jsonMatch = response.match(/\{[\s\S]*\}/);
       const plan = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
       if (!plan) {
-        await updateScaffoldPlanStatus(planId, "failed");
-        await logWorkFailure(workId, "No valid JSON in Copilot response");
+        const errMsg = "Copilot returned an invalid response — no JSON scaffold plan found.";
+        await updateScaffoldPlanStatus(planId, "failed", { error: errMsg } as never);
+        await logWorkFailure(workId, errMsg);
         return;
       }
 
@@ -71,7 +75,7 @@ export async function POST(request: Request) {
       await logWorkComplete(workId, { planId, fileCount: plan.structure?.length ?? 0 });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unknown error";
-      await updateScaffoldPlanStatus(planId, "failed");
+      await updateScaffoldPlanStatus(planId, "failed", { error: message } as never);
       await logWorkFailure(workId, message);
     }
   });
@@ -90,10 +94,17 @@ export async function GET(request: Request) {
   const record = await getScaffoldPlan(planId);
   if (!record) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  return NextResponse.json({
+  const response: Record<string, unknown> = {
     planId: record.id,
     status: record.status,
     plan: record.plan,
     knowledgeSources: record.knowledgeSources,
-  });
+  };
+
+  // Include error message if the plan failed
+  if (record.status === "failed" && record.plan && typeof record.plan === "object" && "error" in record.plan) {
+    response.error = (record.plan as { error?: string }).error;
+  }
+
+  return NextResponse.json(response);
 }

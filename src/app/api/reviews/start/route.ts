@@ -99,7 +99,10 @@ export async function POST(request: Request) {
       if (taskRunner.isCancelled(reviewId)) return;
 
       const prompt = buildReviewPrompt(codeBlock, body.reviewTypes, knowledgeDocs);
-      const response = await askCopilot(accessToken, prompt);
+      const response = await askCopilot(accessToken, prompt, {
+        systemMessage: "You are Repo-Ninja, an expert code reviewer. Always respond with valid JSON.",
+        timeoutMs: 180_000,
+      });
 
       const jsonMatch = response.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {

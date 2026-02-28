@@ -80,7 +80,10 @@ ${originalCode}
 
 Return ONLY the complete updated file content, with no markdown fences or explanation.`;
 
-      const fixedCode = await askCopilot(accessToken, prompt);
+      const fixedCode = await askCopilot(accessToken, prompt, {
+        systemMessage: "You are Repo-Ninja, an expert developer. Return only the complete updated file content, no explanations.",
+        timeoutMs: 180_000,
+      });
 
       const branchName = `repo-ninja/fix/${nanoid(8)}`;
       await updateAgentTask(task.id, { branch: branchName, progressMessage: `Creating branch ${branchName}...` });

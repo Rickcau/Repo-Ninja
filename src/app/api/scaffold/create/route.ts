@@ -45,7 +45,10 @@ For each file, return JSON array:
 
 Make the code production-ready following the best practices: ${plan.bestPracticesApplied.join(", ")}`;
 
-      const response = await askCopilot(accessToken, filePrompt);
+      const response = await askCopilot(accessToken, filePrompt, {
+        systemMessage: "You are Repo-Ninja, an expert developer. Generate production-ready code. Always respond with valid JSON.",
+        timeoutMs: 180_000,
+      });
       const jsonMatch = response.match(/\[[\s\S]*\]/);
       const files = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
 
