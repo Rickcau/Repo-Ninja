@@ -72,6 +72,7 @@ export default function ScaffoldPage() {
   const [result, setResult] = useState<{ repoUrl: string } | null>(null);
   const [progressStep, setProgressStep] = useState(-1);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [planError, setPlanError] = useState<string | null>(null);
   const planPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const createPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -105,6 +106,7 @@ export default function ScaffoldPage() {
   const generatePlan = async (body: Record<string, unknown>) => {
     setIsGenerating(true);
     setPlan(null);
+    setPlanError(null);
     setProgressStep(0);
 
     const progressPromise = animateProgress();
@@ -119,6 +121,7 @@ export default function ScaffoldPage() {
 
       if (!res.ok) {
         await progressPromise;
+        setPlanError(data.error || `Plan generation failed (HTTP ${res.status})`);
         setProgressStep(-1);
         setIsGenerating(false);
         return;
@@ -144,6 +147,11 @@ export default function ScaffoldPage() {
               if (pollData.status === "completed" && pollData.plan) {
                 setPlan(pollData.plan);
                 setKnowledgeSources(pollData.knowledgeSources || []);
+              } else {
+                setPlanError(
+                  pollData.error ||
+                  "Plan generation failed. The AI service may be unavailable — check Settings > System Status for details."
+                );
               }
               setIsGenerating(false);
             }
@@ -163,11 +171,13 @@ export default function ScaffoldPage() {
         setIsGenerating(false);
       } else {
         await progressPromise;
+        setPlanError("No plan was generated. Please try again.");
         setProgressStep(-1);
         setIsGenerating(false);
       }
-    } catch {
+    } catch (err) {
       await progressPromise;
+      setPlanError(err instanceof Error ? err.message : "Network error — please try again.");
       setProgressStep(-1);
       setIsGenerating(false);
     }
@@ -276,6 +286,13 @@ export default function ScaffoldPage() {
 
       {isGenerating && progressStep >= 0 && (
         <ProgressIndicator currentStep={progressStep} />
+      )}
+
+      {planError && !isGenerating && (
+        <div className="rounded-md border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-600 dark:text-red-400">
+          <p className="font-medium mb-1">Plan generation failed</p>
+          <p>{planError}</p>
+        </div>
       )}
 
       {plan && !isGenerating && (

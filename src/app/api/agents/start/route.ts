@@ -111,7 +111,10 @@ export async function POST(request: Request) {
           ? buildIssueSolverPrompt(issueTitle, issueBody, repoContext, knowledgeDocs)
           : buildCodeWriterPrompt(description, repoContext, knowledgeDocs);
 
-      const response = await askCopilot(accessToken, prompt);
+      const response = await askCopilot(accessToken, prompt, {
+        systemMessage: "You are Repo-Ninja, an expert developer. Generate precise code changes. Always respond with valid JSON.",
+        timeoutMs: 180_000,
+      });
 
       if (taskRunner.isCancelled(task.id)) return;
 
