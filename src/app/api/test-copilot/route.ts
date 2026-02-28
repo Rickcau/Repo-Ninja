@@ -2,14 +2,26 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { execSync } from "child_process";
-import { existsSync } from "fs";
-import { resolve } from "path";
+import { existsSync, readFileSync } from "fs";
+import { resolve, join } from "path";
 
 interface TestResult {
   step: string;
   status: "pass" | "fail" | "skip";
   detail: string;
   durationMs?: number;
+}
+
+/** Safely read a package.json version from node_modules at runtime (no require/import). */
+function getPackageVersion(packageName: string): string | null {
+  try {
+    const pkgPath = join(process.cwd(), "node_modules", packageName, "package.json");
+    if (!existsSync(pkgPath)) return null;
+    const pkg = JSON.parse(readFileSync(pkgPath, "utf-8"));
+    return pkg.version ?? "unknown";
+  } catch {
+    return null;
+  }
 }
 
 export async function POST(request: Request) {
@@ -32,14 +44,14 @@ export async function POST(request: Request) {
   });
 
   // Step 2: Check @github/copilot-sdk package
-  try {
-    const sdkPkg = require("@github/copilot-sdk/package.json");
+  const sdkVersion = getPackageVersion("@github/copilot-sdk");
+  if (sdkVersion) {
     results.push({
       step: "SDK Package",
       status: "pass",
-      detail: `@github/copilot-sdk v${sdkPkg.version} installed.`,
+      detail: `@github/copilot-sdk v${sdkVersion} installed.`,
     });
-  } catch {
+  } else {
     results.push({
       step: "SDK Package",
       status: "fail",
@@ -49,14 +61,14 @@ export async function POST(request: Request) {
   }
 
   // Step 3: Check @github/copilot CLI package
-  try {
-    const cliPkg = require("@github/copilot/package.json");
+  const cliVersion = getPackageVersion("@github/copilot");
+  if (cliVersion) {
     results.push({
       step: "CLI Package",
       status: "pass",
-      detail: `@github/copilot v${cliPkg.version} installed.`,
+      detail: `@github/copilot v${cliVersion} installed.`,
     });
-  } catch {
+  } else {
     results.push({
       step: "CLI Package",
       status: "fail",
@@ -65,27 +77,26 @@ export async function POST(request: Request) {
     return NextResponse.json({ results });
   }
 
-  // Step 4: Check platform-specific binary
+  // Step 4: Check platform-specific binary (using fs, not require.resolve to avoid bundler issues)
   const platform = process.platform;
   const arch = process.arch;
   const binaryPkg = `@github/copilot-${platform}-${arch}`;
-  try {
-    const binPath = require.resolve(binaryPkg);
-    const exists = existsSync(binPath);
+  const binaryDir = join(process.cwd(), "node_modules", "@github", `copilot-${platform}-${arch}`);
+  const binaryPath = join(binaryDir, "copilot");
+  const binaryExists = existsSync(binaryPath);
+
+  if (binaryExists) {
     results.push({
       step: "Platform Binary",
-      status: exists ? "pass" : "fail",
-      detail: exists
-        ? `${binaryPkg} found at ${binPath}`
-        : `${binaryPkg} resolved but file not found at ${binPath}`,
+      status: "pass",
+      detail: `${binaryPkg} found at ${binaryPath}`,
     });
-  } catch {
-    // Check if the fallback index.js works (requires Node 24+)
+  } else {
     const nodeVersion = parseInt(process.versions.node.split(".")[0], 10);
     results.push({
       step: "Platform Binary",
       status: "fail",
-      detail: `${binaryPkg} not installed. Fallback requires Node 24+ (current: v${process.versions.node}). ${
+      detail: `${binaryPkg} not installed at ${binaryDir}. Fallback requires Node 24+ (current: v${process.versions.node}). ${
         nodeVersion < 24
           ? "This will NOT work — either install the platform binary or upgrade to Node 24."
           : "Node 24+ detected, fallback may work."
@@ -94,47 +105,33 @@ export async function POST(request: Request) {
   }
 
   // Step 5: Check if the binary is executable (glibc vs musl)
-  try {
-    const binDir = resolve(
-      process.cwd(),
-      "node_modules",
-      "@github",
-      `copilot-${platform}-${arch}`
-    );
-    if (existsSync(resolve(binDir, "copilot"))) {
-      try {
-        const output = execSync(`${resolve(binDir, "copilot")} --version 2>&1`, {
-          timeout: 10000,
-        }).toString().trim();
-        results.push({
-          step: "Binary Execution",
-          status: "pass",
-          detail: `Copilot CLI runs: ${output}`,
-        });
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        // Check for common musl/glibc incompatibility
-        const isLibcIssue = msg.includes("not found") || msg.includes("No such file") || msg.includes("ENOENT");
-        results.push({
-          step: "Binary Execution",
-          status: "fail",
-          detail: isLibcIssue
-            ? `Binary cannot execute — likely glibc/musl incompatibility. If running on Alpine Linux, switch to a Debian-based Docker image (node:20 instead of node:20-alpine). Error: ${msg.substring(0, 200)}`
-            : `Binary execution failed: ${msg.substring(0, 300)}`,
-        });
-      }
-    } else {
+  if (binaryExists) {
+    try {
+      const output = execSync(`"${binaryPath}" --version 2>&1`, {
+        timeout: 10000,
+        env: { ...process.env },
+      }).toString().trim();
       results.push({
         step: "Binary Execution",
-        status: "skip",
-        detail: "Platform binary not found, skipping execution test.",
+        status: "pass",
+        detail: `Copilot CLI runs: ${output}`,
+      });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      const isLibcIssue = msg.includes("not found") || msg.includes("No such file") || msg.includes("ENOENT");
+      results.push({
+        step: "Binary Execution",
+        status: "fail",
+        detail: isLibcIssue
+          ? `Binary cannot execute — likely glibc/musl incompatibility. If running on Alpine Linux, switch to a Debian-based Docker image (node:20-slim instead of node:20-alpine). Error: ${msg.substring(0, 200)}`
+          : `Binary execution failed: ${msg.substring(0, 300)}`,
       });
     }
-  } catch (e) {
+  } else {
     results.push({
       step: "Binary Execution",
-      status: "fail",
-      detail: `Error checking binary: ${e instanceof Error ? e.message : String(e)}`,
+      status: "skip",
+      detail: "Platform binary not found, skipping execution test.",
     });
   }
 
