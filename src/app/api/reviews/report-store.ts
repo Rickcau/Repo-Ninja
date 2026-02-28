@@ -11,11 +11,11 @@ import {
 } from "@/lib/db/dal";
 import type { ReviewReport, AuditReport } from "@/lib/types";
 
-export async function saveReport(id: string, report: ReviewReport | AuditReport): Promise<void> {
+export async function saveReport(id: string, report: (ReviewReport | AuditReport) & { status?: string }): Promise<void> {
   if ("overallScore" in report) {
-    await dalSaveReview(report);
+    await dalSaveReview(report as ReviewReport & { status?: string });
   } else {
-    await dalSaveAudit(report);
+    await dalSaveAudit(report as AuditReport & { status?: string });
   }
 }
 

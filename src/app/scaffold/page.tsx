@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { NaturalLanguageForm } from "@/components/scaffold/natural-language-form";
 import { GuidedForm } from "@/components/scaffold/guided-form";
@@ -8,6 +8,8 @@ import { ScaffoldPlanView } from "@/components/scaffold/scaffold-plan-view";
 import { Card, CardContent } from "@/components/ui/card";
 import { Check, Loader2, Search, Database, FileCode, Eye } from "lucide-react";
 import type { ScaffoldPlan } from "@/lib/types";
+
+const POLL_INTERVAL = 3000;
 
 const PROGRESS_STEPS = [
   { label: "Analyzing requirements...", icon: Search, durationMs: 1200 },
@@ -69,6 +71,17 @@ export default function ScaffoldPage() {
   const [isCreating, setIsCreating] = useState(false);
   const [result, setResult] = useState<{ repoUrl: string } | null>(null);
   const [progressStep, setProgressStep] = useState(-1);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const planPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const createPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Clean up polling on unmount
+  useEffect(() => {
+    return () => {
+      if (planPollRef.current) clearInterval(planPollRef.current);
+      if (createPollRef.current) clearInterval(createPollRef.current);
+    };
+  }, []);
 
   const animateProgress = useCallback((): Promise<void> => {
     return new Promise((resolve) => {
@@ -89,12 +102,11 @@ export default function ScaffoldPage() {
     });
   }, []);
 
-  const generatePlan = async (body: any) => {
+  const generatePlan = async (body: Record<string, unknown>) => {
     setIsGenerating(true);
     setPlan(null);
     setProgressStep(0);
 
-    // Run the progress animation and the API call concurrently
     const progressPromise = animateProgress();
 
     try {
@@ -105,17 +117,57 @@ export default function ScaffoldPage() {
       });
       const data = await res.json();
 
-      // Wait for animation to finish even if API is faster
-      await progressPromise;
+      if (!res.ok) {
+        await progressPromise;
+        setProgressStep(-1);
+        setIsGenerating(false);
+        return;
+      }
 
-      if (data.plan) {
+      // API returns { planId, status: "generating" } (HTTP 202) — start polling
+      if (data.planId && data.status === "generating") {
+        const pollFn = async () => {
+          try {
+            const pollRes = await fetch(`/api/scaffold/plan?planId=${data.planId}`);
+            if (!pollRes.ok) return;
+            const pollData = await pollRes.json();
+
+            if (pollData.status === "completed" || pollData.status === "failed") {
+              if (planPollRef.current) {
+                clearInterval(planPollRef.current);
+                planPollRef.current = null;
+              }
+
+              await progressPromise;
+              setProgressStep(-1);
+
+              if (pollData.status === "completed" && pollData.plan) {
+                setPlan(pollData.plan);
+                setKnowledgeSources(pollData.knowledgeSources || []);
+              }
+              setIsGenerating(false);
+            }
+          } catch {
+            // Keep retrying on network errors
+          }
+        };
+
+        pollFn();
+        planPollRef.current = setInterval(pollFn, POLL_INTERVAL);
+      } else if (data.plan) {
+        // Synchronous response fallback
+        await progressPromise;
         setPlan(data.plan);
         setKnowledgeSources(data.knowledgeSources || []);
+        setProgressStep(-1);
+        setIsGenerating(false);
+      } else {
+        await progressPromise;
+        setProgressStep(-1);
+        setIsGenerating(false);
       }
     } catch {
-      // If the API fails, still wait for animation then show empty plan view
       await progressPromise;
-    } finally {
       setProgressStep(-1);
       setIsGenerating(false);
     }
@@ -130,6 +182,7 @@ export default function ScaffoldPage() {
   const handleCreate = async (repoName: string, isPrivate: boolean) => {
     if (!plan) return;
     setIsCreating(true);
+    setCreateError(null);
     try {
       const res = await fetch("/api/scaffold/create", {
         method: "POST",
@@ -137,8 +190,52 @@ export default function ScaffoldPage() {
         body: JSON.stringify({ plan, repoName, isPrivate }),
       });
       const data = await res.json();
-      if (data.repoUrl) setResult({ repoUrl: data.repoUrl });
-    } finally {
+
+      if (!res.ok) {
+        setCreateError(data.error || "Failed to create repository");
+        setIsCreating(false);
+        return;
+      }
+
+      // API returns { taskId, status: "creating" } (HTTP 202) — poll work history
+      if (data.taskId && data.status === "creating") {
+        const pollFn = async () => {
+          try {
+            const pollRes = await fetch(`/api/history/${data.taskId}`);
+            if (!pollRes.ok) return;
+            const entry = await pollRes.json();
+
+            if (entry.status === "completed" || entry.status === "failed") {
+              if (createPollRef.current) {
+                clearInterval(createPollRef.current);
+                createPollRef.current = null;
+              }
+
+              if (entry.status === "completed") {
+                const meta = entry.resultJson ? JSON.parse(entry.resultJson) : entry.metadata;
+                if (meta?.repoUrl) {
+                  setResult({ repoUrl: meta.repoUrl });
+                }
+              } else {
+                setCreateError("Repository creation failed. Check work history for details.");
+              }
+              setIsCreating(false);
+            }
+          } catch {
+            // Keep retrying on network errors
+          }
+        };
+
+        pollFn();
+        createPollRef.current = setInterval(pollFn, POLL_INTERVAL);
+      } else if (data.repoUrl) {
+        setResult({ repoUrl: data.repoUrl });
+        setIsCreating(false);
+      } else {
+        setIsCreating(false);
+      }
+    } catch (err) {
+      setCreateError(err instanceof Error ? err.message : "Network error");
       setIsCreating(false);
     }
   };
@@ -182,12 +279,19 @@ export default function ScaffoldPage() {
       )}
 
       {plan && !isGenerating && (
-        <ScaffoldPlanView
-          plan={plan}
-          knowledgeSources={knowledgeSources}
-          onConfirm={handleCreate}
-          isCreating={isCreating}
-        />
+        <>
+          <ScaffoldPlanView
+            plan={plan}
+            knowledgeSources={knowledgeSources}
+            onConfirm={handleCreate}
+            isCreating={isCreating}
+          />
+          {createError && (
+            <div className="rounded-md border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-600 dark:text-red-400">
+              {createError}
+            </div>
+          )}
+        </>
       )}
     </div>
   );

@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Plus, RefreshCw, Database, HeartPulse, Clock } from "lucide-react";
+import { Plus, RefreshCw, Database, HeartPulse, Clock, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { useKnowledge } from "@/hooks/use-knowledge";
 import { DocumentList } from "@/components/knowledge/document-list";
 import { DocumentEditor } from "@/components/knowledge/document-editor";
@@ -42,6 +42,14 @@ export default function KnowledgePage() {
     tags?: string[];
     updatedAt?: string;
   } | null>(null);
+  const [healthResult, setHealthResult] = useState<{
+    healthy: boolean;
+    totalChunks: number;
+    totalDiskDocs: number;
+    outOfSync: string[];
+    error?: string;
+  } | null>(null);
+  const [healthLoading, setHealthLoading] = useState(false);
 
   const handleEdit = async (filename: string) => {
     const doc = await getDocument(filename);
@@ -88,10 +96,25 @@ export default function KnowledgePage() {
     setReindexing(false);
   };
 
-  // TODO: Replace with real API data
-  const handleIndexHealth = () => {
-    alert("Index health check: All documents indexed. 0 stale, 0 missing.");
-  };
+  const handleIndexHealth = useCallback(async () => {
+    setHealthLoading(true);
+    try {
+      const res = await fetch("/api/knowledge/health");
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      setHealthResult(data);
+    } catch (err) {
+      setHealthResult({
+        healthy: false,
+        totalChunks: 0,
+        totalDiskDocs: 0,
+        outOfSync: [],
+        error: err instanceof Error ? err.message : "Failed to check health",
+      });
+    } finally {
+      setHealthLoading(false);
+    }
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -190,19 +213,21 @@ export default function KnowledgePage() {
           )}
         </div>
 
-        {/* Last indexed timestamp */}
-        {status.connected && (
+        {status.connected && healthResult && (
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <Clock className="h-3.5 w-3.5" />
-            {/* TODO: Replace with real API data */}
-            <span>Last indexed: 2h ago</span>
+            <span>{healthResult.totalDiskDocs} docs on disk, {healthResult.totalChunks} chunks indexed</span>
           </div>
         )}
 
         <div className="flex items-center gap-2 ml-auto">
-          <Button variant="outline" size="sm" onClick={handleIndexHealth}>
-            <HeartPulse className="h-4 w-4 mr-2" />
-            Index Health
+          <Button variant="outline" size="sm" onClick={handleIndexHealth} disabled={healthLoading}>
+            {healthLoading ? (
+              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <HeartPulse className="h-4 w-4 mr-2" />
+            )}
+            {healthLoading ? "Checking..." : "Index Health"}
           </Button>
           <Button variant="outline" size="sm" onClick={handleReindex} disabled={reindexing}>
             <RefreshCw className={`h-4 w-4 mr-2 ${reindexing ? "animate-spin" : ""}`} />
@@ -210,6 +235,37 @@ export default function KnowledgePage() {
           </Button>
         </div>
       </div>
+
+      {/* Health check results */}
+      {healthResult && (
+        <div
+          className={`rounded-md border p-4 text-sm ${
+            healthResult.healthy
+              ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+              : "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-400"
+          }`}
+        >
+          <div className="flex items-center gap-2 mb-2">
+            {healthResult.healthy ? (
+              <CheckCircle2 className="h-4 w-4" />
+            ) : (
+              <AlertTriangle className="h-4 w-4" />
+            )}
+            <span className="font-medium">
+              {healthResult.healthy
+                ? "All documents indexed and in sync"
+                : healthResult.error || "Index out of sync"}
+            </span>
+          </div>
+          {healthResult.outOfSync.length > 0 && (
+            <ul className="list-disc list-inside space-y-0.5 text-xs mt-1">
+              {healthResult.outOfSync.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
     </div>
   );
 }
