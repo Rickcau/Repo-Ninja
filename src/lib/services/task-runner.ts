@@ -72,6 +72,19 @@ class TaskRunner {
   isCancelled(taskId: string): boolean {
     return this.tasks.get(taskId)?.status === "cancelled";
   }
+
+  getStats(): { total: number; running: number; completed: number; failed: number; cancelled: number } {
+    let running = 0, completed = 0, failed = 0, cancelled = 0;
+    for (const task of this.tasks.values()) {
+      switch (task.status) {
+        case "running": case "queued": running++; break;
+        case "completed": completed++; break;
+        case "failed": failed++; break;
+        case "cancelled": cancelled++; break;
+      }
+    }
+    return { total: this.tasks.size, running, completed, failed, cancelled };
+  }
 }
 
 export const taskRunner = new TaskRunner();

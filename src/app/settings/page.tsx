@@ -26,6 +26,15 @@ interface HealthStatus {
   timestamp: string;
   services: {
     chromadb: string;
+    database?: string;
+  };
+  database?: Record<string, number>;
+  taskRunner?: {
+    total: number;
+    running: number;
+    completed: number;
+    failed: number;
+    cancelled: number;
   };
 }
 
@@ -318,6 +327,26 @@ export default function SettingsPage() {
                         {health.services.chromadb}
                       </Badge>
                     </div>
+                    {health.services.database && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium">Database:</span>
+                        <Badge
+                          variant="outline"
+                          className={
+                            health.services.database === "connected"
+                              ? "gap-1.5 bg-emerald-500/[0.12] text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                              : "gap-1.5 bg-rose-500/[0.12] text-rose-600 dark:text-rose-400 border-rose-500/20"
+                          }
+                        >
+                          <span
+                            className={`inline-block h-1.5 w-1.5 rounded-full shrink-0 ${
+                              health.services.database === "connected" ? "bg-emerald-500" : "bg-rose-500"
+                            }`}
+                          />
+                          {health.services.database}
+                        </Badge>
+                      </div>
+                    )}
                     {health.timestamp && (
                       <p className="text-xs text-muted-foreground">
                         Last checked: {new Date(health.timestamp).toLocaleString()}
@@ -327,6 +356,86 @@ export default function SettingsPage() {
                 ) : null}
               </CardContent>
             </Card>
+
+            {/* Database (Prisma/SQLite) */}
+            {health && health.services.database && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Database className="h-5 w-5" />
+                    Database (Prisma)
+                  </CardTitle>
+                  <CardDescription>SQLite via Prisma ORM</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Badge
+                        variant="outline"
+                        className={
+                          health.services.database === "connected"
+                            ? "gap-1.5 bg-emerald-500/[0.12] text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                            : "gap-1.5 bg-rose-500/[0.12] text-rose-600 dark:text-rose-400 border-rose-500/20"
+                        }
+                      >
+                        <span
+                          className={`inline-block h-1.5 w-1.5 rounded-full shrink-0 ${
+                            health.services.database === "connected" ? "bg-emerald-500" : "bg-rose-500"
+                          }`}
+                        />
+                        {health.services.database === "connected" ? "Connected" : health.services.database}
+                      </Badge>
+                    </div>
+                    {health.database && (
+                      <div className="text-sm text-muted-foreground space-y-1">
+                        <p>Agent Tasks: {health.database.tasks}</p>
+                        <p>Reviews: {health.database.reviews}</p>
+                        <p>Audits: {health.database.audits}</p>
+                        <p>Scaffold Plans: {health.database.scaffolds}</p>
+                        <p>Work History: {health.database.history}</p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* TaskRunner Stats */}
+            {health?.taskRunner && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Activity className="h-5 w-5" />
+                    Background Tasks
+                  </CardTitle>
+                  <CardDescription>TaskRunner in-memory status</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Total tracked</span>
+                      <span className="font-mono">{health.taskRunner.total}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Running</span>
+                      <span className="font-mono text-blue-500">{health.taskRunner.running}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Completed</span>
+                      <span className="font-mono text-emerald-500">{health.taskRunner.completed}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Failed</span>
+                      <span className="font-mono text-rose-500">{health.taskRunner.failed}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Cancelled</span>
+                      <span className="font-mono">{health.taskRunner.cancelled}</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Environment Info */}
             <Card>
@@ -346,6 +455,10 @@ export default function SettingsPage() {
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">React</span>
                     <span className="font-mono">19.2.3</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Prisma</span>
+                    <span className="font-mono">7.4.x</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">NextAuth</span>

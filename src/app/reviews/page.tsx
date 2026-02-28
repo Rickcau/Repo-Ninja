@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useCallback } from "react";
+import { Suspense, useState, useCallback, useRef, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,8 @@ import { ReviewHistory } from "@/components/reviews/review-history";
 import type { ReviewHistoryEntry } from "@/components/reviews/review-history";
 import { Loader2 } from "lucide-react";
 import type { ReviewReport, AuditReport, ReviewType, ReviewScope } from "@/lib/types";
+
+const POLL_INTERVAL = 3000;
 
 function ReviewsContent() {
   const searchParams = useSearchParams();
@@ -28,12 +30,77 @@ function ReviewsContent() {
   const [isReviewing, setIsReviewing] = useState(false);
   const [reviewError, setReviewError] = useState<string | null>(null);
   const [reviewProgress, setReviewProgress] = useState<string[]>([]);
+  const reviewPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Audit state
   const [auditReport, setAuditReport] = useState<AuditReport | null>(null);
   const [isAuditing, setIsAuditing] = useState(false);
   const [auditError, setAuditError] = useState<string | null>(null);
   const [auditRepo, setAuditRepo] = useState("");
+  const auditPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Clean up polling on unmount
+  useEffect(() => {
+    return () => {
+      if (reviewPollRef.current) clearInterval(reviewPollRef.current);
+      if (auditPollRef.current) clearInterval(auditPollRef.current);
+    };
+  }, []);
+
+  const pollReport = useCallback(
+    (reportId: string, type: "review" | "audit") => {
+      const pollFn = async () => {
+        try {
+          const res = await fetch(`/api/reviews/${reportId}`);
+          if (!res.ok) return;
+          const report = await res.json();
+
+          if (report.status === "completed" || report.status === "failed") {
+            if (type === "review" && reviewPollRef.current) {
+              clearInterval(reviewPollRef.current);
+              reviewPollRef.current = null;
+            }
+            if (type === "audit" && auditPollRef.current) {
+              clearInterval(auditPollRef.current);
+              auditPollRef.current = null;
+            }
+
+            if (report.status === "failed") {
+              if (type === "review") {
+                setReviewError("Review failed. Please try again.");
+                setReviewSubView("form");
+                setIsReviewing(false);
+              } else {
+                setAuditError("Audit failed. Please try again.");
+                setIsAuditing(false);
+              }
+              return;
+            }
+
+            if (type === "review") {
+              setReviewReport(report);
+              setReviewSubView("results");
+              setIsReviewing(false);
+            } else {
+              setAuditReport(report);
+              setIsAuditing(false);
+            }
+          }
+        } catch {
+          // Network error during polling — keep retrying
+        }
+      };
+
+      pollFn();
+      const ref = setInterval(pollFn, POLL_INTERVAL);
+      if (type === "review") {
+        reviewPollRef.current = ref;
+      } else {
+        auditPollRef.current = ref;
+      }
+    },
+    []
+  );
 
   const handleReview = async (data: {
     repo: string;
@@ -57,7 +124,6 @@ function ReviewsContent() {
     ];
 
     try {
-      // Show progressive loading while the API works
       const progressInterval = setInterval(() => {
         setReviewProgress((prev) => {
           if (prev.length < steps.length) {
@@ -74,7 +140,6 @@ function ReviewsContent() {
       });
 
       clearInterval(progressInterval);
-      // Show all steps completed
       setReviewProgress(steps);
 
       const json = await res.json();
@@ -82,14 +147,19 @@ function ReviewsContent() {
         throw new Error(json.error || json.details || "Review failed");
       }
 
-      setReviewReport(json);
-      setReviewSubView("results");
+      // API returns { id, status: "running" } (HTTP 202) — start polling
+      if (json.id && json.status === "running") {
+        pollReport(json.id, "review");
+      } else {
+        setReviewReport(json);
+        setReviewSubView("results");
+        setIsReviewing(false);
+      }
     } catch (err) {
       setReviewError(
         err instanceof Error ? err.message : "Review failed"
       );
       setReviewSubView("form");
-    } finally {
       setIsReviewing(false);
     }
   };
@@ -108,12 +178,19 @@ function ReviewsContent() {
       const json = await res.json();
       if (!res.ok) {
         setAuditError(json.error || "Audit failed");
+        setIsAuditing(false);
         return;
       }
-      setAuditReport(json);
+
+      // API returns { id, status: "running" } (HTTP 202) — start polling
+      if (json.id && json.status === "running") {
+        pollReport(json.id, "audit");
+      } else {
+        setAuditReport(json);
+        setIsAuditing(false);
+      }
     } catch (err) {
       setAuditError(err instanceof Error ? err.message : "Network error");
-    } finally {
       setIsAuditing(false);
     }
   };

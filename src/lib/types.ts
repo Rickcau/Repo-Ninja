@@ -66,6 +66,7 @@ export interface AgentTaskResult {
   summary: string;
   prUrl?: string;
   reportUrl?: string;
+  reportPath?: string;
 }
 
 // === Scaffold Types ===

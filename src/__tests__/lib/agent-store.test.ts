@@ -1,4 +1,64 @@
+/**
+ * Agent store tests — mocks the DAL layer to avoid Prisma/import.meta issues.
+ */
+import type { AgentTask, AgentTaskType, AgentTaskStatus } from "@/lib/types";
+
+// In-memory store for mocking
+const store = new Map<string, AgentTask>();
+let idCounter = 0;
+
+jest.mock("@/lib/db/dal", () => ({
+  createAgentTask: async (type: AgentTaskType, repo: string, description: string): Promise<AgentTask> => {
+    idCounter++;
+    const task: AgentTask = {
+      id: `mock-id-${idCounter}`,
+      type,
+      status: "queued",
+      repo,
+      description,
+      progress: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    store.set(task.id, task);
+    return task;
+  },
+  getAgentTask: async (id: string): Promise<AgentTask | null> => {
+    return store.get(id) ?? null;
+  },
+  updateAgentTask: async (
+    id: string,
+    updates: Partial<Pick<AgentTask, "status" | "branch" | "prUrl" | "result">> & { progressMessage?: string }
+  ): Promise<AgentTask | null> => {
+    const task = store.get(id);
+    if (!task) return null;
+    if (updates.status) task.status = updates.status;
+    if (updates.branch) task.branch = updates.branch;
+    if (updates.prUrl) task.prUrl = updates.prUrl;
+    if (updates.result) task.result = updates.result;
+    if (updates.progressMessage) task.progress.push(updates.progressMessage);
+    task.updatedAt = new Date().toISOString();
+    store.set(id, task);
+    return task;
+  },
+  listAgentTasks: async (
+    filter?: { type?: AgentTaskType; status?: AgentTaskStatus },
+    _pagination?: { page?: number; pageSize?: number }
+  ) => {
+    let items = Array.from(store.values());
+    if (filter?.type) items = items.filter((t) => t.type === filter.type);
+    if (filter?.status) items = items.filter((t) => t.status === filter.status);
+    items.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+    return { items, total: items.length };
+  },
+}));
+
 import { createTask, getTask, updateTask, listTasks } from "@/lib/agent-store";
+
+beforeEach(() => {
+  store.clear();
+  idCounter = 0;
+});
 
 describe("createTask", () => {
   it("creates a task with the correct fields", async () => {
@@ -93,7 +153,7 @@ describe("listTasks", () => {
     await createTask("code-writer", "owner/repo", "Task 3");
 
     const tasks = await listTasks();
-    expect(tasks.length).toBeGreaterThanOrEqual(3);
+    expect(tasks.length).toBe(3);
   });
 
   it("filters by type", async () => {
@@ -102,6 +162,7 @@ describe("listTasks", () => {
     await createTask("issue-solver", "owner/repo", "Another solver");
 
     const result = await listTasks({ type: "issue-solver" });
+    expect(result.length).toBe(2);
     result.forEach((t) => expect(t.type).toBe("issue-solver"));
   });
 
@@ -111,8 +172,8 @@ describe("listTasks", () => {
     await updateTask(t1.id, { status: "running" });
 
     const running = await listTasks({ status: "running" });
-    expect(running.length).toBeGreaterThanOrEqual(1);
-    expect(running.some((t) => t.id === t1.id)).toBe(true);
+    expect(running.length).toBe(1);
+    expect(running[0].id).toBe(t1.id);
   });
 
   it("filters by both type and status", async () => {
@@ -122,8 +183,8 @@ describe("listTasks", () => {
     await updateTask(t1.id, { status: "completed" });
 
     const result = await listTasks({ type: "issue-solver", status: "completed" });
-    expect(result.length).toBeGreaterThanOrEqual(1);
-    expect(result.some((t) => t.id === t1.id)).toBe(true);
+    expect(result.length).toBe(1);
+    expect(result[0].id).toBe(t1.id);
   });
 
   it("returns tasks sorted by updatedAt descending", async () => {
