@@ -1,5 +1,5 @@
 /**
- * Agent store — now backed by SQLite via the DAL.
+ * Agent store — backed by Prisma via the DAL.
  * Maintains backward-compatible signatures but delegates to async DAL.
  */
 import {
