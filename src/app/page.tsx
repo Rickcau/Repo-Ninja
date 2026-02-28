@@ -136,8 +136,15 @@ export default function DashboardPage() {
   if (isFirstRun) {
     return (
       <div className="space-y-6">
-        <div>
-          <p className="text-sm text-muted-foreground mt-1">
+        <div className="flex items-center gap-3">
+          {session.user?.image && (
+            <img
+              src={session.user.image}
+              alt={session.user?.name || "Avatar"}
+              className="h-9 w-9 rounded-full border"
+            />
+          )}
+          <p className="text-sm text-muted-foreground">
             Connected as {session.user?.name || session.user?.email}
           </p>
         </div>
@@ -148,8 +155,15 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <p className="text-sm text-muted-foreground mt-1">
+      <div className="flex items-center gap-3">
+        {session.user?.image && (
+          <img
+            src={session.user.image}
+            alt={session.user?.name || "Avatar"}
+            className="h-9 w-9 rounded-full border"
+          />
+        )}
+        <p className="text-sm text-muted-foreground">
           Connected as {session.user?.name || session.user?.email}
         </p>
       </div>
