@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
-import { listWorkHistory, type ActionType } from "@/lib/db/dal";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { listWorkHistory, clearWorkHistory, type ActionType } from "@/lib/db/dal";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -14,4 +16,12 @@ export async function GET(request: Request) {
   );
 
   return NextResponse.json(result);
+}
+
+export async function DELETE() {
+  const session = await getServerSession(authOptions);
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const deleted = await clearWorkHistory();
+  return NextResponse.json({ deleted });
 }

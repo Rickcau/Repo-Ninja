@@ -100,3 +100,96 @@ The SDKs communicate with Copilot CLI via **JSON-RPC**. The SDK manages the CLI 
 | Commits | 156 |
 | Contributors | 38 |
 | Languages | TypeScript (28.8%), Python (25.2%), C# (23.0%), Go (21.4%) |
+
+---
+
+## How the SDK Actually Works (Repo-Ninja Usage Notes)
+
+### The CLI and SDK are the Same Thing
+
+The `copilot` command in the terminal IS the same agent runtime exposed by the SDK. Running `copilot` opens an interactive REPL; the SDK communicates with the same process via JSON-RPC. A text prompt sent via `session.sendAndWait({ prompt: "..." })` is equivalent to typing that prompt into the CLI. The agent can answer questions, plan tasks, and — critically — **call tools autonomously**.
+
+### Built-in GitHub Tools via the GitHub MCP Server
+
+The agent has no built-in GitHub capabilities by default. GitHub tools (create repo, create issue, open PR, merge PR, add comment, manage rulesets, etc.) are unlocked by connecting to **GitHub's hosted MCP server** in `createSession`:
+
+```typescript
+const session = await client.createSession({
+  model: "gpt-4.1",
+  streaming: true,
+  mcpServers: {
+    github: {
+      type: "http",
+      url: "https://api.githubcopilot.com/mcp/",
+      // Auth header passes the user's OAuth token through to the MCP server
+      headers: { Authorization: `Bearer ${accessToken}` },
+    },
+  },
+});
+```
+
+With this, a single natural language prompt can instruct the agent to create a repo, open an issue, mention `@copilot` to trigger the coding agent, and set up a code review ruleset — **the agent calls GitHub's APIs itself** using its MCP tools.
+
+### What We Were Doing Wrong (Old Approach)
+
+The original scaffold route asked Copilot to **output file content as JSON text**, then parsed that response and called GitHub APIs from server-side code. This fails because:
+
+- JSON parsing is fragile (Copilot wraps output in markdown, truncates long responses)
+- File generation prompts time out on large scaffolds
+- We were using Copilot as a "dumb text generator", not an agent
+
+### The Correct Approach (Agent-Orchestrated Scaffold)
+
+```typescript
+// 1. start client with user's token
+const copilot = new CopilotClient({ githubToken: accessToken });
+await copilot.start();
+
+// 2. create session connected to GitHub MCP server
+const session = await copilot.createSession({
+  model: "gpt-4.1",
+  streaming: true,
+  mcpServers: {
+    github: { type: "http", url: "https://api.githubcopilot.com/mcp/",
+              headers: { Authorization: `Bearer ${accessToken}` } },
+  },
+});
+
+// 3. stream tool-call events as progress to the UI
+session.on("tool.call", (event) => sendSSEProgress(event.data));
+
+// 4. one prompt — agent plans and executes everything
+await session.sendAndWait({
+  prompt: `
+    Create a new GitHub repository called '${repoName}' (${isPrivate ? "private" : "public"}).
+    Then create an issue titled 'feat: scaffold initial project' with this specification as the body:
+    ${scaffoldSpec}
+    Then add a comment on the issue that says '@copilot please implement this issue'.
+    Then create a branch ruleset on the default branch that requires Copilot code review on all PRs.
+  `
+});
+```
+
+The agent creates the repo, issues the API calls, and reports back — no JSON parsing required.
+
+### Streaming Events
+
+| Event | When it fires |
+|-------|---------------|
+| `assistant.message_delta` | Text response streaming chunk |
+| `session.idle` | Agent finished thinking/acting |
+| `tool.call` | Agent is invoking a tool (use for progress UI) |
+| `tool.result` | Tool call completed with result |
+
+### Custom Tools vs MCP Servers
+
+| Concept | When to use |
+|---------|-------------|
+| `defineTool(name, { handler })` | You want the agent to call **your own TypeScript code** |
+| `mcpServers: { ... }` | You want the agent to use **pre-built external tools** (GitHub, filesystem, etc.) |
+
+For all GitHub operations in Repo-Ninja: use `mcpServers` with the GitHub MCP server — not custom `defineTool` wrappers around Octokit.
+
+### MCP Documentation
+- [MCP Overview](https://github.com/github/copilot-sdk/blob/main/docs/mcp/overview.md)
+- [GitHub MCP Server](https://github.com/github/github-mcp-server)

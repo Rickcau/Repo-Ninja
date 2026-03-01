@@ -44,7 +44,7 @@ export interface KnowledgeStore {
 
 // === Agent Types ===
 
-export type AgentTaskType = "issue-solver" | "code-writer" | "code-review" | "best-practices-audit";
+export type AgentTaskType = "issue-solver" | "code-writer" | "code-review" | "best-practices-audit" | "custom-task";
 
 export type AgentTaskStatus = "queued" | "running" | "completed" | "failed" | "cancelled";
 
@@ -72,9 +72,11 @@ export interface AgentTaskResult {
 // === Scaffold Types ===
 
 export interface ScaffoldRequest {
-  mode: "natural-language" | "guided";
+  mode: "natural-language" | "guided" | "from-template";
   description?: string;
   options?: GuidedScaffoldOptions;
+  templateId?: string;       // filename of KB scaffolding doc (from-template mode)
+  extraDescription?: string; // additional requirements on top of template
 }
 
 export interface GuidedScaffoldOptions {
@@ -151,6 +153,8 @@ export interface ReviewFinding {
 export interface AuditReport {
   id: string;
   repo: string;
+  repoType?: string;
+  detectedStack?: { language: string; framework: string; runtime: string };
   complianceScore: number;
   checks: AuditCheck[];
   recommendations: string[];

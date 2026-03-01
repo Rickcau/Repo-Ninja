@@ -1,16 +1,29 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { getOctokit, createRepo, commitFiles } from "@/lib/github/octokit";
-import { askCopilot } from "@/lib/copilot-sdk/client";
-import { taskRunner } from "@/lib/services/task-runner";
-import { logWorkStart, logWorkComplete, logWorkFailure } from "@/lib/db/dal";
+import { agentWithGitHub, type AgentProgressEvent } from "@/lib/copilot-sdk/client";
 import type { ScaffoldPlan } from "@/lib/types";
-import { nanoid } from "nanoid";
 
+/**
+ * SSE endpoint for agent-driven repo scaffolding.
+ *
+ * The agent uses the commit_files custom tool (Git Trees API) to create all
+ * scaffold files in a single atomic commit — typically completes in ~20s.
+ *
+ * Events sent to the client:
+ *   { type: "step",      step: string, detail?: string }
+ *   { type: "tool",      name: string, args?: string }
+ *   { type: "tool_done", name: string }
+ *   { type: "message",   content: string }
+ *   { type: "done",      repoUrl?: string, summary: string }
+ *   { type: "error",     detail: string }
+ */
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const accessToken = session.accessToken;
+  if (!accessToken) return NextResponse.json({ error: "No access token" }, { status: 401 });
 
   const { plan, repoName, isPrivate } = (await request.json()) as {
     plan: ScaffoldPlan;
@@ -18,61 +31,102 @@ export async function POST(request: Request) {
     isPrivate: boolean;
   };
 
-  const accessToken = session.accessToken;
-  if (!accessToken) return NextResponse.json({ error: "No access token" }, { status: 401 });
+  const owner = session.user?.name ?? session.user?.email ?? "unknown";
+  const visibility = isPrivate ? "private" : "public";
 
-  const taskId = nanoid();
-  const userEmail = session.user?.email ?? undefined;
+  // Build a file list for the prompt from the plan structure
+  const fileList = plan.structure
+    .map((f) => {
+      let entry = `- **${f.path}**: ${f.description}`;
+      if (f.content) {
+        entry += `\n    Content hint:\n    \`\`\`\n    ${f.content.substring(0, 500)}\n    \`\`\``;
+      }
+      return entry;
+    })
+    .join("\n");
 
-  // Enqueue background work
-  taskRunner.enqueue(taskId, async () => {
-    const workId = await logWorkStart(userEmail, "scaffold-create", repoName, `Create repo: ${repoName}`, taskId);
+  const bestPractices =
+    plan.bestPracticesApplied.length > 0
+      ? `Apply these best practices: ${plan.bestPracticesApplied.join(", ")}`
+      : "";
 
-    try {
-      const octokit = getOctokit(accessToken);
+  const prompt = `
+You are Repo-Ninja's scaffold agent. Your job is to create a fully scaffolded GitHub repository with real, working code — all done directly via the GitHub API (no PRs, no issues, no coding agent).
 
-      // Create the repo
-      const repo = await createRepo(octokit, repoName, plan.description, isPrivate);
+You have a custom tool called **commit_files** that commits multiple files to a repo in a single atomic commit using the Git Trees API. This is much faster than creating files one at a time.
 
-      if (taskRunner.isCancelled(taskId)) return;
+Do the following steps in order:
 
-      // Generate file contents via Copilot SDK
-      const filePrompt = `Generate the complete file contents for each file in this scaffold plan:
-${JSON.stringify(plan.structure, null, 2)}
+1. **Create repo**: Use the GitHub MCP create_repository tool to create a new ${visibility} repository named "${repoName}" for user "${owner}" (this is a personal user account, NOT an organization) with description "${plan.description}". Set auto_init to true so it has a default branch. WAIT for this to complete before step 2.
 
-For each file, return JSON array:
-[{ "path": "file/path.ts", "content": "full file content..." }]
+2. **Commit all scaffold files at once**: Use the **commit_files** tool to create ALL of the following files in a single commit on the "main" branch with commit message "feat: initial scaffold by Repo-Ninja".
 
-Make the code production-ready following the best practices: ${plan.bestPracticesApplied.join(", ")}`;
+   ${bestPractices}
 
-      const response = await askCopilot(accessToken, filePrompt, {
-        systemMessage: "You are Repo-Ninja, an expert developer. Generate production-ready code. Always respond with valid JSON.",
-        timeoutMs: 180_000,
-      });
-      const jsonMatch = response.match(/\[[\s\S]*\]/);
-      const files = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
+   Files to create:
+${fileList}
 
-      if (taskRunner.isCancelled(taskId)) return;
+   Each file must have complete, real, working code. No placeholders or TODOs. Generate proper implementation based on each file's description.
 
-      // Commit files to repo
-      if (files.length > 0) {
-        await commitFiles(
-          octokit,
-          repo.owner,
-          repoName,
-          repo.defaultBranch,
-          files,
-          "feat: initial scaffold by Repo-Ninja"
-        );
+3. **Report results**: List every file created with its path. Provide the repository URL: https://github.com/${owner}/${repoName}
+
+Do NOT delete the repository.
+`;
+
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    async start(controller) {
+      function send(data: Record<string, unknown>) {
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
       }
 
-      await logWorkComplete(workId, { repoUrl: repo.htmlUrl, filesCreated: files.length });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Unknown error";
-      await logWorkFailure(workId, message);
-    }
+      send({ type: "step", step: "Starting scaffold agent", detail: `Creating repo: ${repoName}` });
+      const t = Date.now();
+
+      try {
+        let finalMessage = "";
+
+        await agentWithGitHub(
+          accessToken,
+          prompt,
+          (event: AgentProgressEvent) => {
+            if (event.type === "tool_call") {
+              send({ type: "tool", name: event.toolName ?? "unknown", args: event.detail });
+            } else if (event.type === "tool_result") {
+              send({ type: "tool_done", name: event.toolName ?? "unknown" });
+            } else if (event.type === "message" && event.content) {
+              finalMessage += event.content;
+              send({ type: "message", content: event.content });
+            } else if (event.type === "error") {
+              send({ type: "error", detail: event.detail ?? "Unknown error" });
+            }
+          }
+        );
+
+        const repoUrlMatch = finalMessage.match(/https:\/\/github\.com\/[^\s)>\]]+/);
+        send({
+          type: "done",
+          repoUrl: repoUrlMatch?.[0],
+          repoName,
+          summary: `Scaffold completed in ${((Date.now() - t) / 1000).toFixed(1)}s`,
+          durationMs: Date.now() - t,
+        });
+      } catch (err) {
+        send({
+          type: "error",
+          detail: `Failed after ${((Date.now() - t) / 1000).toFixed(1)}s: ${err instanceof Error ? err.message : String(err)}`,
+        });
+      } finally {
+        controller.close();
+      }
+    },
   });
 
-  // Return immediately (HTTP 202 Accepted)
-  return NextResponse.json({ taskId, status: "creating" }, { status: 202 });
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+    },
+  });
 }

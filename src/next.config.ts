@@ -7,6 +7,8 @@ const nextConfig: NextConfig = {
     "@prisma/adapter-better-sqlite3",
     "@github/copilot",
     "@github/copilot-sdk",
+    "@chroma-core/default-embed",
+    "@chroma-core/ai-embeddings-common",
   ],
 };
 

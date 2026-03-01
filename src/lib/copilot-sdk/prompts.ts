@@ -31,6 +31,60 @@ Generate a scaffold plan as JSON with this structure:
 Be specific about file paths and what each file contains. Follow the patterns from the knowledge base documents.`;
 }
 
+export function buildFromTemplateScaffoldPrompt(
+  templateContent: string,
+  extraDescription: string
+): string {
+  const extra = extraDescription?.trim()
+    ? `\nAdditional requirements from the user:\n"${extraDescription}"\n\nIncorporate these requirements on top of the template.`
+    : "";
+
+  return `You are Repo-Ninja, an expert at scaffolding new GitHub repositories following best practices.
+
+Use the following scaffolding template as your primary reference. Follow its structure, conventions, and patterns exactly:
+
+--- SCAFFOLD TEMPLATE ---
+${templateContent}
+--- END TEMPLATE ---
+${extra}
+
+Generate a scaffold plan as JSON with this structure:
+{
+  "repoName": "suggested-repo-name",
+  "description": "Short description",
+  "structure": [
+    { "path": "src/app/page.tsx", "description": "Main page component" }
+  ],
+  "bestPracticesApplied": ["TypeScript strict mode", "ESLint config"],
+  "knowledgeSources": ["template-filename.md"]
+}
+
+Be specific about file paths and what each file should contain. Faithfully implement the patterns defined in the template.`;
+}
+
+export function buildGenerateTemplatePrompt(description: string): string {
+  return `You are Repo-Ninja, an expert technical architect and developer. Generate a comprehensive scaffolding template markdown document for:
+
+"${description}"
+
+The template should be a detailed, developer-friendly guide that covers:
+1. Project initialization commands
+2. Recommended directory structure (with a visual tree)
+3. Key configuration files and their contents (tsconfig, eslint, etc.)
+4. Core dependencies to install
+5. Code patterns and conventions to follow
+6. Security and quality best practices relevant to this stack
+7. CI/CD setup recommendations
+
+Format the output as clean markdown with:
+- A clear H1 title describing the template
+- H2 sections for each major area
+- Code blocks with syntax highlighting for commands and file contents
+- Bullet points for lists of recommendations
+
+Only respond with the markdown content — no preamble, no explanation outside the markdown.`;
+}
+
 export function buildReviewPrompt(
   code: string,
   reviewTypes: ReviewType[],
@@ -129,4 +183,37 @@ Respond as JSON:
     "Add unit tests for core functionality"
   ]
 }`;
+}
+
+export function buildCustomTaskPrompt(
+  userPrompt: string,
+  repoContext: string,
+  knowledgeDocs: KnowledgeResult[]
+): string {
+  const context = knowledgeDocs
+    .map((doc) => `--- ${doc.metadata.filename} ---\n${doc.content}`)
+    .join("\n\n");
+
+  return `You are Repo-Ninja, an expert developer. The user has given you a custom task to perform on their repository. Follow their instructions precisely.
+
+Relevant knowledge base documents:
+${context}
+
+User's task:
+${userPrompt}
+
+Repository structure:
+${repoContext}
+
+Generate the file changes needed to fulfill this task. For each file, provide the complete content.
+Respond as JSON:
+{
+  "summary": "Brief description of what was done",
+  "files": [
+    { "path": "path/to/file.ext", "action": "create", "content": "full file content..." }
+  ],
+  "commitMessage": "feat: description of changes"
+}
+
+Be specific about file paths and follow existing patterns in the repository.`;
 }
