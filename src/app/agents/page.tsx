@@ -1,180 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { RepoSelector } from "@/components/agents/repo-selector";
+import { useRepoContext } from "@/lib/repo-context";
 import { IssueList } from "@/components/agents/issue-list";
 import { CodeWriterForm } from "@/components/agents/code-writer-form";
+import { CustomTaskForm } from "@/components/agents/custom-task-form";
 import { TaskList } from "@/components/agents/task-list";
 import { AgentTypeSelector, type AgentTypeId } from "@/components/agents/agent-type-selector";
 import { AgentDetailPanel, type AgentTaskDetail } from "@/components/agents/agent-detail-panel";
 import { StatusBadge } from "@/components/shared/status-badge";
-import type { AgentTaskStatus } from "@/lib/types";
+import type { AgentTask, AgentTaskStatus } from "@/lib/types";
 import {
   CheckCircle2,
   XCircle,
   Loader2,
   Clock,
   GitPullRequest,
+  Trash2,
 } from "lucide-react";
-
-interface SelectedRepo {
-  fullName: string;
-  owner: string;
-  name: string;
-}
-
-// TODO: Replace with real API data
-const mockTasks: {
-  id: string;
-  name: string;
-  repo: string;
-  status: AgentTaskStatus;
-  type: string;
-  progress: number;
-  createdAt: string;
-  detail: AgentTaskDetail;
-}[] = [
-  {
-    id: "task-1",
-    name: "Fix login redirect loop (#42)",
-    repo: "acme/web-app",
-    status: "completed",
-    type: "issue-solver",
-    progress: 100,
-    createdAt: "2026-02-25T10:15:00Z",
-    detail: {
-      id: "task-1",
-      name: "Fix login redirect loop (#42)",
-      repo: "acme/web-app",
-      status: "completed",
-      type: "issue-solver",
-      createdAt: "2026-02-25T10:15:00Z",
-      steps: [
-        { id: "s1", name: "Read issue", description: "Fetched issue #42 from GitHub", status: "complete", durationMs: 820 },
-        {
-          id: "s2",
-          name: "Query knowledge base",
-          description: "Retrieved relevant patterns for auth redirect handling",
-          status: "complete",
-          durationMs: 1240,
-          retrievedDocs: [
-            { name: "best-practices.md", section: "Auth Patterns", score: 0.94 },
-            { name: "architecture-patterns.md", section: "Middleware Flow", score: 0.87 },
-          ],
-        },
-        { id: "s3", name: "Generate solution", description: "Created fix for redirect loop in middleware.ts", status: "complete", durationMs: 3400 },
-        { id: "s4", name: "Create PR", description: "Opened PR #43 with the fix", status: "complete", durationMs: 1600 },
-        { id: "s5", name: "Run tests", description: "All 24 tests passed", status: "complete", durationMs: 8200 },
-      ],
-      groundedIn: [
-        { name: "best-practices.md", section: "Auth Patterns - Redirect Guards" },
-        { name: "architecture-patterns.md", section: "Middleware Flow - NextAuth Integration" },
-        { name: "agent-instructions.md", section: "Issue Resolution Flow" },
-      ],
-    },
-  },
-  {
-    id: "task-2",
-    name: "Scaffold user settings page",
-    repo: "acme/web-app",
-    status: "running",
-    type: "code-writer",
-    progress: 60,
-    createdAt: "2026-02-25T11:32:00Z",
-    detail: {
-      id: "task-2",
-      name: "Scaffold user settings page",
-      repo: "acme/web-app",
-      status: "running",
-      type: "code-writer",
-      createdAt: "2026-02-25T11:32:00Z",
-      steps: [
-        { id: "s1", name: "Read issue", description: "Parsed natural-language description", status: "complete", durationMs: 210 },
-        {
-          id: "s2",
-          name: "Query knowledge base",
-          description: "Found scaffolding templates and style guides",
-          status: "complete",
-          durationMs: 980,
-          retrievedDocs: [
-            { name: "scaffolding-templates.md", section: "Settings Page", score: 0.91 },
-            { name: "best-practices.md", section: "Form Validation", score: 0.82 },
-          ],
-        },
-        { id: "s3", name: "Generate solution", description: "Writing components and API routes...", status: "in-progress" },
-        { id: "s4", name: "Create PR", description: "Pending solution generation", status: "pending" },
-        { id: "s5", name: "Run tests", description: "Waiting for PR creation", status: "pending" },
-      ],
-      groundedIn: [
-        { name: "scaffolding-templates.md", section: "Settings Page Template" },
-        { name: "best-practices.md", section: "Form Validation Patterns" },
-      ],
-    },
-  },
-  {
-    id: "task-3",
-    name: "Add rate limiting to /api/chat",
-    repo: "acme/api-service",
-    status: "failed",
-    type: "issue-solver",
-    progress: 40,
-    createdAt: "2026-02-25T09:05:00Z",
-    detail: {
-      id: "task-3",
-      name: "Add rate limiting to /api/chat",
-      repo: "acme/api-service",
-      status: "failed",
-      type: "issue-solver",
-      createdAt: "2026-02-25T09:05:00Z",
-      steps: [
-        { id: "s1", name: "Read issue", description: "Fetched issue #17 from GitHub", status: "complete", durationMs: 640 },
-        {
-          id: "s2",
-          name: "Query knowledge base",
-          description: "Found rate limiting patterns",
-          status: "complete",
-          durationMs: 1100,
-          retrievedDocs: [
-            { name: "best-practices.md", section: "Rate Limiting", score: 0.89 },
-          ],
-        },
-        { id: "s3", name: "Generate solution", description: "Failed: insufficient context for Redis config", status: "complete", durationMs: 4200 },
-        { id: "s4", name: "Create PR", description: "Skipped due to generation failure", status: "pending" },
-        { id: "s5", name: "Run tests", description: "Skipped", status: "pending" },
-      ],
-      groundedIn: [
-        { name: "best-practices.md", section: "Rate Limiting - Redis Integration" },
-      ],
-    },
-  },
-  {
-    id: "task-4",
-    name: "Audit CI pipeline config",
-    repo: "acme/web-app",
-    status: "queued",
-    type: "custom-task",
-    progress: 0,
-    createdAt: "2026-02-25T11:45:00Z",
-    detail: {
-      id: "task-4",
-      name: "Audit CI pipeline config",
-      repo: "acme/web-app",
-      status: "queued",
-      type: "custom-task",
-      createdAt: "2026-02-25T11:45:00Z",
-      steps: [
-        { id: "s1", name: "Read issue", description: "Waiting in queue", status: "pending" },
-        { id: "s2", name: "Query knowledge base", description: "Pending", status: "pending" },
-        { id: "s3", name: "Generate solution", description: "Pending", status: "pending" },
-        { id: "s4", name: "Create PR", description: "Pending", status: "pending" },
-        { id: "s5", name: "Run tests", description: "Pending", status: "pending" },
-      ],
-      groundedIn: [],
-    },
-  },
-];
 
 function TaskStatusIcon({ status }: { status: AgentTaskStatus }) {
   switch (status) {
@@ -192,15 +38,43 @@ function TaskStatusIcon({ status }: { status: AgentTaskStatus }) {
 }
 
 export default function AgentsPage() {
-  const [selectedRepo, setSelectedRepo] = useState<SelectedRepo | null>(null);
+  const { selectedRepo } = useRepoContext();
   const [selectedAgentType, setSelectedAgentType] = useState<AgentTypeId | null>(null);
   const [assigningIssue, setAssigningIssue] = useState<number | null>(null);
   const [codeWriterSubmitting, setCodeWriterSubmitting] = useState(false);
+  const [customTaskSubmitting, setCustomTaskSubmitting] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [selectedTask, setSelectedTask] = useState<AgentTaskDetail | null>(null);
   const [detailPanelOpen, setDetailPanelOpen] = useState(false);
+  const [tasks, setTasks] = useState<AgentTask[]>([]);
 
   const triggerRefresh = () => setRefreshTrigger((n) => n + 1);
+
+  const handleClearTasks = async () => {
+    if (!confirm("Clear all agent tasks? This cannot be undone.")) return;
+    try {
+      const res = await fetch("/api/agents/tasks", { method: "DELETE" });
+      if (res.ok) {
+        setTasks([]);
+        triggerRefresh();
+      }
+    } catch {
+      // Silently fail
+    }
+  };
+
+  const fetchTasks = useCallback(() => {
+    fetch("/api/agents/tasks")
+      .then((res) => (res.ok ? res.json() : { tasks: [] }))
+      .then((data) => setTasks(data.tasks || []))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    fetchTasks();
+    const interval = setInterval(fetchTasks, 5000);
+    return () => clearInterval(interval);
+  }, [fetchTasks, refreshTrigger]);
 
   const handleAssignIssue = async (issue: { number: number; title: string; body: string }) => {
     if (!selectedRepo) return;
@@ -245,9 +119,68 @@ export default function AgentsPage() {
     }
   };
 
-  const handleTaskClick = (task: (typeof mockTasks)[number]) => {
-    setSelectedTask(task.detail);
-    setDetailPanelOpen(true);
+  const handleCustomTask = async (description: string) => {
+    if (!selectedRepo) return;
+    setCustomTaskSubmitting(true);
+    try {
+      await fetch("/api/agents/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "custom-task",
+          repo: selectedRepo.fullName,
+          description,
+        }),
+      });
+      triggerRefresh();
+    } catch {
+      // Error handling is in the task list
+    } finally {
+      setCustomTaskSubmitting(false);
+    }
+  };
+
+  const handleTaskClick = async (task: AgentTask) => {
+    // Fetch detailed info for this task
+    try {
+      const res = await fetch(`/api/agents/${task.id}`);
+      if (res.ok) {
+        const json = await res.json();
+        const detail = json.task ?? json;
+        setSelectedTask({
+          id: detail.id,
+          name: detail.description || task.description,
+          repo: detail.repo || "",
+          status: detail.status,
+          type: detail.type || "custom-task",
+          createdAt: detail.createdAt || new Date().toISOString(),
+          steps: detail.steps || [],
+          groundedIn: detail.groundedIn || [],
+          errorMessage: detail.status === "failed" ? (detail.result?.summary ?? detail.errorMessage) : undefined,
+          progress: detail.progress || [],
+          prUrl: detail.prUrl || detail.result?.prUrl,
+          summary: detail.result?.summary,
+        });
+        setDetailPanelOpen(true);
+      }
+    } catch {
+      // Fallback: open panel with basic info
+      setSelectedTask({
+        id: task.id,
+        name: task.description,
+        repo: task.repo || "",
+        status: task.status,
+        type: task.type || "custom-task",
+        createdAt: task.createdAt || new Date().toISOString(),
+        steps: [],
+        groundedIn: [],
+        errorMessage: task.status === "failed" ? task.result?.summary : undefined,
+        progress: task.progress || [],
+        prUrl: task.prUrl || task.result?.prUrl,
+        summary: task.result?.summary,
+      });
+      setDetailPanelOpen(true);
+    }
   };
 
   return (
@@ -259,18 +192,16 @@ export default function AgentsPage() {
         </p>
       </div>
 
-      {/* Repo Selector */}
-      <Card>
-        <CardContent className="pt-6">
-          <label className="text-sm font-medium block mb-2">Select Repository</label>
-          <RepoSelector onChange={setSelectedRepo} />
-          {selectedRepo && (
-            <p className="text-sm text-muted-foreground mt-2">
-              Selected: <span className="font-mono">{selectedRepo.fullName}</span>
+      {/* No repo selected prompt */}
+      {!selectedRepo && (
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-sm text-muted-foreground">
+              Select a repository from the header dropdown to get started.
             </p>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Agent Type Selector */}
       {selectedRepo && (
@@ -286,7 +217,7 @@ export default function AgentsPage() {
       {selectedRepo && selectedAgentType && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Issue Solver Section */}
-          {(selectedAgentType === "issue-solver" || selectedAgentType === "custom-task") && (
+          {selectedAgentType === "issue-solver" && (
             <Card>
               <CardContent className="pt-6">
                 <h2 className="text-lg font-semibold mb-4">Issue Solver</h2>
@@ -304,7 +235,7 @@ export default function AgentsPage() {
           )}
 
           {/* Code Writer Section */}
-          {(selectedAgentType === "code-writer" || selectedAgentType === "custom-task") && (
+          {selectedAgentType === "code-writer" && (
             <Card>
               <CardContent className="pt-6">
                 <h2 className="text-lg font-semibold mb-4">Code Writer</h2>
@@ -318,66 +249,104 @@ export default function AgentsPage() {
               </CardContent>
             </Card>
           )}
+
+          {/* Custom Task Section */}
+          {selectedAgentType === "custom-task" && (
+            <Card>
+              <CardContent className="pt-6">
+                <h2 className="text-lg font-semibold mb-4">Custom Task</h2>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Give the agent any instruction and it will execute it against your repository, creating a pull request with the results.
+                </p>
+                <CustomTaskForm
+                  onSubmit={handleCustomTask}
+                  isSubmitting={customTaskSubmitting}
+                />
+              </CardContent>
+            </Card>
+          )}
         </div>
       )}
 
-      {/* Enhanced Task List with mock data */}
+      {/* Agent Tasks from API */}
       <Card>
         <CardContent className="pt-6">
-          <h2 className="text-lg font-semibold mb-4">Recent Agent Tasks</h2>
-
-          {/* Mock enriched task items */}
-          <div className="space-y-2 mb-6">
-            {mockTasks.map((task) => (
-              <button
-                key={task.id}
-                className="w-full flex items-center gap-3 rounded-lg border bg-surface-card px-4 py-3 text-left transition-colors hover:bg-accent/50 focus:outline-none focus:ring-2 focus:ring-ring/50"
-                onClick={() => handleTaskClick(task)}
-              >
-                <TaskStatusIcon status={task.status} />
-
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium truncate">{task.name}</p>
-                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 capitalize shrink-0">
-                      {task.type.replace("-", " ")}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-xs text-muted-foreground font-mono">
-                      {task.repo}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {new Date(task.createdAt).toLocaleTimeString()}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Progress indicator */}
-                <div className="flex items-center gap-2 shrink-0">
-                  {task.status === "running" && (
-                    <div className="w-16 h-1.5 rounded-full bg-muted overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-primary transition-all"
-                        style={{ width: `${task.progress}%` }}
-                      />
-                    </div>
-                  )}
-                  {task.status === "completed" && (
-                    <div className="flex items-center gap-1 text-xs text-emerald-500">
-                      <GitPullRequest className="h-3 w-3" />
-                      <span>PR</span>
-                    </div>
-                  )}
-                  <StatusBadge status={task.status} />
-                </div>
-              </button>
-            ))}
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold">Recent Agent Tasks</h2>
+            {tasks.length > 0 && (
+              <Button variant="outline" size="sm" onClick={handleClearTasks} className="gap-2">
+                <Trash2 className="h-4 w-4" />
+                Clear Tasks
+              </Button>
+            )}
           </div>
 
-          {/* Original task list from API */}
-          <div className="border-t pt-4">
-            <p className="text-xs text-muted-foreground mb-3">Live API Tasks</p>
+          {tasks.length > 0 && (
+            <div className="space-y-2 mb-6">
+              {tasks.map((task) => (
+                <button
+                  key={task.id}
+                  className="w-full flex items-center gap-3 rounded-lg border bg-surface-card px-4 py-3 text-left transition-colors hover:bg-accent/50 focus:outline-none focus:ring-2 focus:ring-ring/50"
+                  onClick={() => handleTaskClick(task)}
+                >
+                  <TaskStatusIcon status={task.status} />
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-medium truncate">{task.description}</p>
+                      {task.type && (
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 capitalize shrink-0">
+                          {task.type.replace("-", " ")}
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      {task.repo && (
+                        <span className="text-xs text-muted-foreground font-mono">
+                          {task.repo}
+                        </span>
+                      )}
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(task.createdAt).toLocaleTimeString()}
+                      </span>
+                    </div>
+                    {task.status === "failed" && task.result?.summary && (
+                      <p className="text-xs text-rose-400 mt-1 line-clamp-2">{task.result.summary}</p>
+                    )}
+                    {task.status === "running" && task.progress.length > 0 && (
+                      <p className="text-xs text-muted-foreground mt-1 truncate">{task.progress[task.progress.length - 1]}</p>
+                    )}
+                  </div>
+
+                  {/* Progress indicator */}
+                  <div className="flex items-center gap-2 shrink-0">
+                    {task.status === "running" && (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+                    )}
+                    {task.status === "completed" && (task.prUrl || task.result?.prUrl) && (
+                      <a
+                        href={task.prUrl || task.result?.prUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-xs text-emerald-500 hover:text-emerald-400 hover:underline"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <GitPullRequest className="h-3 w-3" />
+                        <span>View PR</span>
+                      </a>
+                    )}
+                    <StatusBadge status={task.status} />
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* TaskList component for additional real-time view */}
+          <div className={tasks.length > 0 ? "border-t pt-4" : ""}>
+            {tasks.length > 0 && (
+              <p className="text-xs text-muted-foreground mb-3">Live API Tasks</p>
+            )}
             <TaskList refreshTrigger={refreshTrigger} />
           </div>
         </CardContent>

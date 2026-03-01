@@ -11,6 +11,10 @@ services:
         condition: service_healthy
     environment:
       - CHROMADB_URL=http://chromadb:8000
+      - DATABASE_URL=file:/app/data/repo-ninja.db
+    volumes:
+      - app-data:/app/data
+      - knowledge-base-data:/app/knowledge-base
     restart: unless-stopped
 
   chromadb:
@@ -29,3 +33,5 @@ services:
 
 volumes:
   chroma-data:
+  app-data:
+  knowledge-base-data:

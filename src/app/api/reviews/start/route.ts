@@ -1,16 +1,13 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { getOctokit, getRepoTree, getFileContent } from "@/lib/github/octokit";
+import { agentWithGitHub } from "@/lib/copilot-sdk/client";
 import { ChromaDBStore } from "@/lib/chromadb/chromadb-store";
-import { askCopilot } from "@/lib/copilot-sdk/client";
-import { buildReviewPrompt } from "@/lib/copilot-sdk/prompts";
 import type { ReviewRequest, ReviewReport } from "@/lib/types";
 import { nanoid } from "nanoid";
 import { saveReport } from "../report-store";
-
-const MAX_FILES_TO_REVIEW = 15;
-const MAX_FILE_SIZE = 50_000; // chars
+import { logWorkStart, logWorkComplete, logWorkFailure } from "@/lib/db/dal";
+import { taskRunner } from "@/lib/services/task-runner";
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
@@ -29,78 +26,136 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid repo format. Use owner/repo" }, { status: 400 });
   }
 
-  try {
-    const octokit = getOctokit(session.accessToken);
+  const reviewId = nanoid();
+  const accessToken = session.accessToken;
+  const userEmail = session.user?.email ?? undefined;
 
-    // Get repo file tree
-    const tree = await getRepoTree(octokit, owner, repo, "HEAD");
+  // Save initial report with status "running"
+  const initialReport: ReviewReport & { status: string } = {
+    id: reviewId,
+    repo: body.repo,
+    reviewTypes: body.reviewTypes,
+    overallScore: 0,
+    categoryScores: [],
+    findings: [],
+    createdAt: new Date().toISOString(),
+    status: "running",
+  };
+  await saveReport(reviewId, initialReport);
 
-    // Filter files based on scope and pattern
-    let filesToReview = tree.filter((path) => {
-      // Skip non-code files
-      if (/\.(png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|lock|min\.)/.test(path)) return false;
-      if (path.includes("node_modules/") || path.includes(".git/")) return false;
-      return true;
-    });
+  // Enqueue background work
+  taskRunner.enqueue(reviewId, async () => {
+    const workId = await logWorkStart(userEmail, "code-review", body.repo, `Code review: ${body.reviewTypes.join(", ")} on ${body.repo}`, reviewId);
 
-    if (body.filePattern) {
-      const pattern = new RegExp(body.filePattern.replace(/\*/g, ".*"));
-      filesToReview = filesToReview.filter((path) => pattern.test(path));
-    }
+    try {
+      if (taskRunner.isCancelled(reviewId)) return;
 
-    // Limit the number of files
-    filesToReview = filesToReview.slice(0, MAX_FILES_TO_REVIEW);
-
-    // Fetch file contents
-    const fileContents: string[] = [];
-    for (const filePath of filesToReview) {
+      // Try to get KB context (graceful degradation)
+      let kbContext = "";
       try {
-        const content = await getFileContent(octokit, owner, repo, filePath);
-        if (content.length <= MAX_FILE_SIZE) {
-          fileContents.push(`--- ${filePath} ---\n${content}`);
+        const store = new ChromaDBStore();
+        const knowledgeDocs = await store.search(
+          `code review ${body.reviewTypes.join(" ")} best practices`,
+          6
+        );
+        if (knowledgeDocs.length > 0) {
+          kbContext = "\n\nRelevant best practices from the knowledge base:\n" +
+            knowledgeDocs.map((doc) => `--- ${doc.metadata.filename} ---\n${doc.content}`).join("\n\n");
         }
-      } catch {
-        // Skip files that can't be fetched
+      } catch (kbErr) {
+        console.warn(`[reviews/start] KB unavailable, continuing without:`, kbErr instanceof Error ? kbErr.message : kbErr);
       }
+
+      if (taskRunner.isCancelled(reviewId)) return;
+
+      // Build scope instructions for the agent
+      let scopeInstructions = "";
+      if (body.scope === "pr" && body.prNumber) {
+        scopeInstructions = `Scope: Review Pull Request #${body.prNumber}. Use the GitHub tools to read the PR diff and changed files. Focus your review on the changes introduced by this PR.`;
+      } else if (body.scope === "files" && body.filePattern) {
+        scopeInstructions = `Scope: Review files matching the pattern "${body.filePattern}". Use the GitHub tools to list the repository contents and read files that match this pattern.`;
+      } else {
+        scopeInstructions = `Scope: Full repository review. Use the GitHub tools to read the repository structure, then read the most important source files to perform your review. Focus on source code files — skip binary files, lock files, and node_modules.`;
+      }
+
+      const prompt = `You are Repo-Ninja, an expert code reviewer. You have access to GitHub tools to read repository files directly.
+
+Repository: ${body.repo}
+
+${scopeInstructions}
+
+Review categories to evaluate: ${body.reviewTypes.join(", ")}
+
+For each category, thoroughly review the code by reading the actual source files. Look for:
+- **security**: SQL injection, XSS, auth issues, secrets in code, insecure dependencies
+- **performance**: N+1 queries, unnecessary re-renders, missing caching, large bundle sizes, inefficient algorithms
+- **accessibility**: Missing ARIA labels, poor keyboard navigation, missing alt text, color contrast issues
+- **general**: Code quality, naming conventions, error handling, dead code, missing types, anti-patterns
+- **custom**: Any other issues you find noteworthy
+${kbContext}
+
+After reviewing the repository, respond with ONLY a JSON object in this exact format (no markdown, no explanation, just the JSON):
+{
+  "overallScore": 7.8,
+  "categoryScores": [
+    { "category": "security", "score": 8, "maxScore": 10, "issueCount": 2 }
+  ],
+  "findings": [
+    { "severity": "high", "category": "security", "title": "Hardcoded API key", "description": "An API key is hardcoded in the source file", "file": "src/lib/api.ts", "line": 45, "suggestion": "Move the API key to environment variables" }
+  ]
+}
+
+Severity must be one of: "critical", "high", "medium", "low", "info".
+Category must be one of the requested review types: ${body.reviewTypes.join(", ")}.
+Include a categoryScores entry for each requested review type.
+Be thorough — read as many files as needed to give an accurate, detailed review.`;
+
+      const response = await agentWithGitHub(
+        accessToken,
+        prompt,
+        (event) => {
+          if (event.type === "error") {
+            console.error(`[reviews/start] Agent error:`, event.detail);
+          }
+        },
+        300_000
+      );
+
+      if (taskRunner.isCancelled(reviewId)) return;
+
+      // Parse the JSON from the agent's response
+      const jsonMatch = response.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        const snippet = response.slice(0, 300).replace(/\n/g, " ");
+        const errMsg = `No JSON found in agent response. Starts with: ${snippet}`;
+        console.error(`[reviews/start] ${errMsg}`);
+        await saveReport(reviewId, { ...initialReport, status: "failed", findings: [{ severity: "high" as const, category: "security", title: "Parse Error", description: errMsg }] });
+        await logWorkFailure(workId, errMsg);
+        return;
+      }
+
+      const parsed = JSON.parse(jsonMatch[0]);
+
+      const report: ReviewReport & { status: string } = {
+        id: reviewId,
+        repo: body.repo,
+        reviewTypes: body.reviewTypes,
+        overallScore: parsed.overallScore ?? 0,
+        categoryScores: parsed.categoryScores ?? [],
+        findings: parsed.findings ?? [],
+        createdAt: initialReport.createdAt,
+        status: "completed",
+      };
+
+      await saveReport(reviewId, report);
+      await logWorkComplete(workId, { reportId: reviewId, findingsCount: report.findings.length });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unknown error";
+      console.error(`[reviews/start] Review ${reviewId} failed:`, message);
+      await saveReport(reviewId, { ...initialReport, status: "failed", findings: [{ severity: "high" as const, category: "security", title: "Review Error", description: message }] });
+      await logWorkFailure(workId, message);
     }
+  });
 
-    const codeBlock = fileContents.join("\n\n");
-
-    // Query ChromaDB for review instructions
-    const store = new ChromaDBStore();
-    const knowledgeDocs = await store.search(
-      `code review ${body.reviewTypes.join(" ")} best practices`,
-      6
-    );
-
-    // Invoke Copilot SDK
-    const prompt = buildReviewPrompt(codeBlock, body.reviewTypes, knowledgeDocs);
-    const response = await askCopilot(session.accessToken, prompt);
-
-    // Parse JSON from response
-    const jsonMatch = response.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      return NextResponse.json({ error: "Failed to parse review response", raw: response }, { status: 500 });
-    }
-
-    const parsed = JSON.parse(jsonMatch[0]);
-
-    const report: ReviewReport = {
-      id: nanoid(),
-      repo: body.repo,
-      reviewTypes: body.reviewTypes,
-      overallScore: parsed.overallScore ?? 0,
-      categoryScores: parsed.categoryScores ?? [],
-      findings: parsed.findings ?? [],
-      createdAt: new Date().toISOString(),
-    };
-
-    // Store report for later retrieval
-    saveReport(report.id, report);
-
-    return NextResponse.json(report);
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ error: "Review failed", details: message }, { status: 500 });
-  }
+  return NextResponse.json({ id: reviewId, status: "running" }, { status: 202 });
 }

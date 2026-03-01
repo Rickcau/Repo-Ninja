@@ -20,6 +20,9 @@ import {
   Star,
   Filter,
   Search,
+  ExternalLink,
+  Loader2,
+  CheckCircle2,
 } from "lucide-react";
 import type { ReviewReport, FindingSeverity, ReviewFinding } from "@/lib/types";
 
@@ -33,6 +36,12 @@ export function ReviewResults({ report }: ReviewResultsProps) {
   const [severityFilter, setSeverityFilter] = useState<string>("all");
   const [fileFilter, setFileFilter] = useState("");
   const [dismissedIds, setDismissedIds] = useState<Set<number>>(new Set());
+  // Track per-finding issue creation state: index -> { status, url?, error? }
+  const [issueStates, setIssueStates] = useState<
+    Record<number, { status: "idle" | "creating" | "created" | "error"; url?: string; error?: string }>
+  >({});
+  const [creatingAll, setCreatingAll] = useState(false);
+  const [createAllDone, setCreateAllDone] = useState(false);
 
   // Severity counts
   const counts = useMemo(() => {
@@ -66,15 +75,66 @@ export function ReviewResults({ report }: ReviewResultsProps) {
     }
   };
 
-  const handleCreateIssue = (finding: ReviewFinding) => {
-    // TODO: Replace with real API call to create a GitHub issue
-    console.log("Create issue for:", finding.title);
+  const createIssueForFinding = async (finding: ReviewFinding, idx: number): Promise<boolean> => {
+    setIssueStates((prev) => ({ ...prev, [idx]: { status: "creating" } }));
+    try {
+      const res = await fetch("/api/reviews/create-issue", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ repo: report.repo, finding }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setIssueStates((prev) => ({ ...prev, [idx]: { status: "created", url: data.issueUrl } }));
+        return true;
+      } else {
+        setIssueStates((prev) => ({ ...prev, [idx]: { status: "error", error: data.error } }));
+        return false;
+      }
+    } catch (err) {
+      setIssueStates((prev) => ({
+        ...prev,
+        [idx]: { status: "error", error: err instanceof Error ? err.message : "Network error" },
+      }));
+      return false;
+    }
   };
 
-  const handleApplyFix = (finding: ReviewFinding) => {
-    // TODO: Replace with real API call to apply the fix
-    console.log("Apply fix for:", finding.title);
+  const handleCreateIssue = async (finding: ReviewFinding & { _idx?: number }) => {
+    const idx = finding._idx ?? report.findings.indexOf(finding);
+    if (idx < 0) return;
+    await createIssueForFinding(finding, idx);
   };
+
+  const handleCreateAllIssues = async () => {
+    setCreatingAll(true);
+    setCreateAllDone(false);
+    for (const finding of filteredFindings) {
+      const state = issueStates[finding._idx];
+      if (state?.status === "created") continue; // Skip already created
+      await createIssueForFinding(finding, finding._idx);
+    }
+    setCreatingAll(false);
+    setCreateAllDone(true);
+  };
+
+  const handleApplyFix = async (finding: ReviewFinding) => {
+    try {
+      const res = await fetch("/api/reviews/apply-fix", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ repo: report.repo, finding }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        console.error("Failed to apply fix:", data.error);
+      }
+    } catch (err) {
+      console.error("Error applying fix:", err);
+    }
+  };
+
+  const createdCount = Object.values(issueStates).filter((s) => s.status === "created").length;
 
   return (
     <div className="space-y-6">
@@ -141,14 +201,25 @@ export function ReviewResults({ report }: ReviewResultsProps) {
         </Card>
       </div>
 
-      {/* Category Scores */}
-      {report.categoryScores.length > 0 && (
-        <Card>
-          <CardHeader>
+      {/* Review Type + Category Scores */}
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col gap-2">
             <CardTitle className="text-base">
               Review Results for {report.repo}
             </CardTitle>
-          </CardHeader>
+            {report.reviewTypes && report.reviewTypes.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {report.reviewTypes.map((t) => (
+                  <Badge key={t} variant="secondary" className="capitalize text-xs">
+                    {t} Review
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </div>
+        </CardHeader>
+        {report.categoryScores.length > 0 && (
           <CardContent className="space-y-3">
             {report.categoryScores.map((cat) => (
               <div key={cat.category} className="space-y-1">
@@ -170,10 +241,10 @@ export function ReviewResults({ report }: ReviewResultsProps) {
               </div>
             ))}
           </CardContent>
-        </Card>
-      )}
+        )}
+      </Card>
 
-      {/* Filter Controls */}
+      {/* Filter Controls + Create All Issues */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Filter className="h-4 w-4" />
@@ -215,18 +286,78 @@ export function ReviewResults({ report }: ReviewResultsProps) {
       {/* Findings */}
       {filteredFindings.length > 0 && (
         <div className="space-y-3">
-          <h3 className="text-lg font-semibold">
-            Findings ({filteredFindings.length})
-          </h3>
-          {filteredFindings.map((finding) => (
-            <FindingCard
-              key={finding._idx}
-              finding={finding}
-              onCreateIssue={handleCreateIssue}
-              onApplyFix={handleApplyFix}
-              onDismiss={handleDismiss}
-            />
-          ))}
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold">
+              Findings ({filteredFindings.length})
+            </h3>
+            <div className="flex items-center gap-2">
+              {createdCount > 0 && (
+                <span className="text-xs text-emerald-400 flex items-center gap-1">
+                  <CheckCircle2 className="h-3 w-3" />
+                  {createdCount} issue{createdCount !== 1 ? "s" : ""} created
+                </span>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={handleCreateAllIssues}
+                disabled={creatingAll || createAllDone}
+              >
+                {creatingAll ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Creating Issues...
+                  </>
+                ) : createAllDone ? (
+                  <>
+                    <CheckCircle2 className="h-4 w-4" />
+                    All Issues Created
+                  </>
+                ) : (
+                  <>
+                    <ExternalLink className="h-4 w-4" />
+                    Create All Issues
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+          {filteredFindings.map((finding) => {
+            const state = issueStates[finding._idx];
+            return (
+              <div key={finding._idx} className="relative">
+                <FindingCard
+                  finding={finding}
+                  onCreateIssue={
+                    state?.status === "created" ? undefined : handleCreateIssue
+                  }
+                  onApplyFix={handleApplyFix}
+                  onDismiss={handleDismiss}
+                />
+                {/* Issue creation status overlay */}
+                {state?.status === "creating" && (
+                  <div className="absolute bottom-3 left-6 flex items-center gap-2 text-xs text-muted-foreground">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    Creating issue...
+                  </div>
+                )}
+                {state?.status === "created" && state.url && (
+                  <div className="absolute bottom-3 left-6 flex items-center gap-2 text-xs text-emerald-400">
+                    <CheckCircle2 className="h-3 w-3" />
+                    <a href={state.url} target="_blank" rel="noopener noreferrer" className="underline">
+                      Issue created
+                    </a>
+                  </div>
+                )}
+                {state?.status === "error" && (
+                  <div className="absolute bottom-3 left-6 text-xs text-rose-400">
+                    Failed: {state.error}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 

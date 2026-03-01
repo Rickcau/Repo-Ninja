@@ -7,7 +7,6 @@ export class ChromaDBStore implements KnowledgeStore {
     const client = getChromaClient();
     const collection = await client.getOrCreateCollection({
       name: COLLECTION_NAME,
-      embeddingFunction: null,
     });
 
     const results = await collection.query({
@@ -39,10 +38,13 @@ export class ChromaDBStore implements KnowledgeStore {
     const client = getChromaClient();
     const collection = await client.getOrCreateCollection({
       name: COLLECTION_NAME,
-      embeddingFunction: null,
     });
 
     const chunks = chunkMarkdown(metadata.filename, metadata.category, content);
+
+    // ChromaDB rejects empty arrays in metadata — strip tags if empty
+    const { tags, ...metaWithoutTags } = metadata;
+    const sanitizedMeta = tags && tags.length > 0 ? metadata : metaWithoutTags;
 
     try {
       const existing = await collection.get({
@@ -59,7 +61,7 @@ export class ChromaDBStore implements KnowledgeStore {
       ids: chunks.map((c) => c.id),
       documents: chunks.map((c) => c.content),
       metadatas: chunks.map((c) => ({
-        ...metadata,
+        ...sanitizedMeta,
         section: c.metadata.section,
         chunkIndex: c.metadata.chunkIndex,
       })),
@@ -70,7 +72,6 @@ export class ChromaDBStore implements KnowledgeStore {
     const client = getChromaClient();
     const collection = await client.getOrCreateCollection({
       name: COLLECTION_NAME,
-      embeddingFunction: null,
     });
 
     const existing = await collection.get({
@@ -90,7 +91,6 @@ export class ChromaDBStore implements KnowledgeStore {
     }
     await client.getOrCreateCollection({
       name: COLLECTION_NAME,
-      embeddingFunction: null,
     });
   }
 
@@ -99,7 +99,6 @@ export class ChromaDBStore implements KnowledgeStore {
       const client = getChromaClient();
       const collection = await client.getOrCreateCollection({
         name: COLLECTION_NAME,
-        embeddingFunction: null,
       });
       const count = await collection.count();
       return { connected: true, documentCount: count };

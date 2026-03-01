@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-const OPTIONS = {
+const FALLBACK_OPTIONS: Record<string, string[]> = {
   framework: ["React/Next.js", "Python/FastAPI", "Node/Express", ".NET Web API"],
   language: ["TypeScript", "JavaScript", "Python", "C#"],
   auth: ["GitHub OAuth", "Azure AD", "JWT", "None"],
@@ -20,6 +20,16 @@ interface GuidedFormProps {
 
 export function GuidedForm({ onSubmit, isLoading }: GuidedFormProps) {
   const [selections, setSelections] = useState<Record<string, string>>({});
+  const [options, setOptions] = useState<Record<string, string[]>>(FALLBACK_OPTIONS);
+
+  useEffect(() => {
+    fetch("/api/scaffold/options")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.options) setOptions(data.options);
+      })
+      .catch(() => {});
+  }, []);
 
   const update = (key: string, value: string) =>
     setSelections((prev) => ({ ...prev, [key]: value }));
@@ -27,7 +37,7 @@ export function GuidedForm({ onSubmit, isLoading }: GuidedFormProps) {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
-        {Object.entries(OPTIONS).map(([key, values]) => (
+        {Object.entries(options).map(([key, values]) => (
           <div key={key}>
             <label className="text-sm font-medium capitalize">{key}</label>
             <Select value={selections[key] || ""} onValueChange={(v) => update(key, v)}>

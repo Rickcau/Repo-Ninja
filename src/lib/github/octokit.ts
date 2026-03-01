@@ -162,3 +162,163 @@ export async function createPullRequest(
   });
   return { number: data.number, htmlUrl: data.html_url };
 }
+
+/**
+ * Create a GitHub Issue and optionally assign to 'copilot' to trigger the coding agent.
+ */
+export async function createIssue(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  title: string,
+  body: string,
+  assignees: string[] = []
+) {
+  const { data } = await octokit.rest.issues.create({
+    owner,
+    repo,
+    title,
+    body,
+    assignees,
+  });
+  return { number: data.number, htmlUrl: data.html_url };
+}
+
+/**
+ * Enable the Copilot coding agent on a repo by finding the Copilot GitHub App
+ * installation for the authenticated user and adding the repo to it.
+ *
+ * When the user has Copilot Pro/Business with the coding agent enabled, GitHub
+ * installs a "GitHub Copilot" App on their account. Individual repos must be
+ * granted access to that installation before the `copilot` assignee is valid.
+ *
+ * Returns { status, body } for diagnostic display.
+ */
+export async function enableCopilotCodingAgent(
+  octokit: Octokit,
+  owner: string,
+  repo: string
+): Promise<{ status: number; body: unknown }> {
+  try {
+    // Step 1: list all GitHub App installations accessible to the authenticated user
+    const installsRes = await octokit.request("GET /user/installations", {
+      per_page: 100,
+      headers: { "X-GitHub-Api-Version": "2022-11-28" },
+    });
+
+    type Installation = { id: number; app_slug: string };
+    const installs = installsRes.data.installations as Installation[];
+    const allSlugs = installs.map((i) => i.app_slug);
+
+    // GitHub Copilot coding agent is wired through a "github-copilot" (or similar) app
+    const copilotInstall = installs.find((i) =>
+      i.app_slug?.toLowerCase().includes("copilot")
+    );
+
+    if (!copilotInstall) {
+      return {
+        status: 404,
+        body: {
+          message:
+            "No Copilot GitHub App installation found. Ensure Copilot Pro/Business with coding agent is enabled on your account.",
+          availableSlugs: allSlugs,
+        },
+      };
+    }
+
+    // Step 2: get the repo's numeric ID
+    const repoRes = await octokit.rest.repos.get({ owner, repo });
+    const repoId = repoRes.data.id;
+
+    // Step 3: add the repo to the Copilot App installation
+    try {
+      const addRes = await octokit.request(
+        "PUT /user/installations/{installation_id}/repositories/{repository_id}",
+        {
+          installation_id: copilotInstall.id,
+          repository_id: repoId,
+          headers: { "X-GitHub-Api-Version": "2022-11-28" },
+        }
+      );
+      return {
+        status: addRes.status,
+        body: {
+          message: `Repo (id: ${repoId}) added to Copilot App (id: ${copilotInstall.id}, slug: ${copilotInstall.app_slug}).`,
+        },
+      };
+    } catch (addErr: unknown) {
+      const e = addErr as { status?: number; message?: string; response?: { data?: unknown } };
+      // 422 on this PUT usually means the installation is already set to "All repositories"
+      if (e.status === 422) {
+        return {
+          status: 204,
+          body: {
+            message:
+              "Copilot installation already covers all repositories — no explicit repo grant needed.",
+            installationSlug: copilotInstall.app_slug,
+          },
+        };
+      }
+      return {
+        status: e.status ?? 0,
+        body: { error: e.message ?? String(addErr), detail: e.response?.data },
+      };
+    }
+  } catch (err: unknown) {
+    const e = err as { status?: number; message?: string; response?: { data?: unknown } };
+    return {
+      status: e.status ?? 0,
+      body: { error: e.message ?? String(err), detail: e.response?.data },
+    };
+  }
+}
+
+/**
+ * Create a repository ruleset that requests Copilot as an automatic code reviewer
+ * on all PRs targeting the default branch.
+ * Returns the raw response for diagnostic purposes.
+ */
+export async function createCopilotReviewRuleset(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  defaultBranch: string
+): Promise<{ status: number; body: unknown }> {
+  try {
+    const res = await octokit.request("POST /repos/{owner}/{repo}/rulesets", {
+      owner,
+      repo,
+      name: "copilot-auto-review",
+      target: "branch",
+      enforcement: "active",
+      conditions: {
+        ref_name: {
+          include: [`refs/heads/${defaultBranch}`],
+          exclude: [],
+        },
+      },
+      rules: [
+        {
+          type: "pull_request",
+          parameters: {
+            required_approving_review_count: 0,
+            dismiss_stale_reviews_on_push: false,
+            require_code_owner_review: false,
+            require_last_push_approval: false,
+            required_review_thread_resolution: false,
+          },
+        },
+      ],
+      // Request Copilot as automatic reviewer — bypass_actors format for Copilot
+      // This is the experimental shape; we capture the response to see what works.
+      headers: { "X-GitHub-Api-Version": "2022-11-28" },
+    });
+    return { status: res.status, body: res.data };
+  } catch (err: unknown) {
+    const e = err as { status?: number; message?: string; response?: { data?: unknown } };
+    return {
+      status: e.status ?? 0,
+      body: { error: e.message ?? String(err), detail: e.response?.data },
+    };
+  }
+}

@@ -1,8 +1,10 @@
 "use client";
 
-import { Suspense, useState, useCallback } from "react";
+import { Suspense, useState, useCallback, useRef, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
+import { useRepoContext } from "@/lib/repo-context";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -14,113 +16,11 @@ import type { ReviewHistoryEntry } from "@/components/reviews/review-history";
 import { Loader2 } from "lucide-react";
 import type { ReviewReport, AuditReport, ReviewType, ReviewScope } from "@/lib/types";
 
-// TODO: Replace with real API data
-const MOCK_REVIEW_REPORT: ReviewReport = {
-  id: "rev-mock-001",
-  repo: "acme/web-app",
-  reviewTypes: ["security", "general"],
-  overallScore: 7.2,
-  categoryScores: [
-    { category: "security", score: 6, maxScore: 10, issueCount: 3 },
-    { category: "general", score: 8, maxScore: 10, issueCount: 2 },
-  ],
-  findings: [
-    {
-      severity: "high",
-      category: "security",
-      title: "SQL Injection in user query",
-      description:
-        "User input is concatenated directly into SQL query string without parameterization.",
-      file: "src/api/users.ts",
-      line: 42,
-      codeSnippet: `const query = \`SELECT * FROM users WHERE id = '\${req.params.id}'\`;`,
-      knowledgeSource: "security.md > SQL Injection Prevention",
-      suggestion:
-        "Use parameterized queries to prevent SQL injection attacks.",
-      suggestedCode: `const query = "SELECT * FROM users WHERE id = $1";\nconst result = await db.query(query, [req.params.id]);`,
-    },
-    {
-      severity: "high",
-      category: "security",
-      title: "Missing authentication middleware",
-      description:
-        "The /api/admin routes do not have authentication middleware applied, allowing unauthenticated access.",
-      file: "src/api/admin/index.ts",
-      line: 8,
-      codeSnippet: `router.get("/admin/users", listUsers);`,
-      knowledgeSource: "auth-patterns.md > Route Protection",
-      suggestion: "Add authentication middleware to all admin routes.",
-      suggestedCode: `router.get("/admin/users", requireAuth, requireAdmin, listUsers);`,
-    },
-    {
-      severity: "medium",
-      category: "security",
-      title: "Sensitive data in error response",
-      description:
-        "Stack traces and internal error details are exposed to clients in production error responses.",
-      file: "src/middleware/error-handler.ts",
-      line: 15,
-      codeSnippet: `res.status(500).json({ error: err.message, stack: err.stack });`,
-      knowledgeSource: "security.md > Error Handling",
-      suggestion:
-        "Return generic error messages in production. Log full details server-side only.",
-    },
-    {
-      severity: "medium",
-      category: "general",
-      title: "Unused imports in component",
-      description:
-        "Several imports are declared but never used, increasing bundle size.",
-      file: "src/components/Dashboard.tsx",
-      line: 1,
-      codeSnippet: `import { useState, useEffect, useCallback, useMemo } from "react";`,
-      knowledgeSource: "best-practices.md > Clean Imports",
-      suggestion: "Remove unused imports: useCallback and useMemo.",
-      suggestedCode: `import { useState, useEffect } from "react";`,
-    },
-    {
-      severity: "low",
-      category: "general",
-      title: "Magic number in timeout",
-      description:
-        "A hardcoded timeout value of 30000ms is used without explanation.",
-      file: "src/services/api-client.ts",
-      line: 23,
-      codeSnippet: `const timeout = 30000;`,
-      knowledgeSource: "best-practices.md > Constants",
-      suggestion: "Extract magic numbers into named constants.",
-      suggestedCode: `const API_TIMEOUT_MS = 30_000;\nconst timeout = API_TIMEOUT_MS;`,
-    },
-    {
-      severity: "info",
-      category: "general",
-      title: "Consider adding JSDoc comments",
-      description:
-        "Public API functions lack JSDoc documentation, making the API harder to understand.",
-      file: "src/lib/utils.ts",
-      line: 10,
-      knowledgeSource: "code-style.md > Documentation",
-      suggestion: "Add JSDoc comments to exported functions.",
-    },
-    {
-      severity: "medium",
-      category: "security",
-      title: "JWT token stored in localStorage",
-      description:
-        "Authentication tokens stored in localStorage are vulnerable to XSS attacks.",
-      file: "src/lib/auth.ts",
-      line: 55,
-      codeSnippet: `localStorage.setItem("token", jwt);`,
-      knowledgeSource: "auth-patterns.md > Token Storage",
-      suggestion:
-        "Use httpOnly cookies for token storage instead of localStorage.",
-    },
-  ],
-  createdAt: new Date().toISOString(),
-};
+const POLL_INTERVAL = 3000;
 
 function ReviewsContent() {
   const searchParams = useSearchParams();
+  const { selectedRepo: globalRepo } = useRepoContext();
   const defaultTab = searchParams.get("tab") === "audit" ? "audit" : "review";
 
   const [activeTab, setActiveTab] = useState(defaultTab);
@@ -133,12 +33,99 @@ function ReviewsContent() {
   const [isReviewing, setIsReviewing] = useState(false);
   const [reviewError, setReviewError] = useState<string | null>(null);
   const [reviewProgress, setReviewProgress] = useState<string[]>([]);
+  const [reviewMeta, setReviewMeta] = useState<{
+    repo: string;
+    reviewTypes: ReviewType[];
+    scope: ReviewScope;
+  } | null>(null);
+  const reviewPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Audit state
   const [auditReport, setAuditReport] = useState<AuditReport | null>(null);
   const [isAuditing, setIsAuditing] = useState(false);
   const [auditError, setAuditError] = useState<string | null>(null);
-  const [auditRepo, setAuditRepo] = useState("");
+  const auditPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Always use the globally selected repo for audits
+  const auditRepo = globalRepo?.fullName ?? "";
+
+  // Clean up polling on unmount
+  useEffect(() => {
+    return () => {
+      if (reviewPollRef.current) clearInterval(reviewPollRef.current);
+      if (auditPollRef.current) clearInterval(auditPollRef.current);
+    };
+  }, []);
+
+  const pollReport = useCallback(
+    (reportId: string, type: "review" | "audit") => {
+      const pollFn = async () => {
+        try {
+          const res = await fetch(`/api/reviews/${reportId}`);
+          if (!res.ok) return;
+          const report = await res.json();
+
+          if (report.status === "completed" || report.status === "failed") {
+            if (type === "review" && reviewPollRef.current) {
+              clearInterval(reviewPollRef.current);
+              reviewPollRef.current = null;
+            }
+            if (type === "audit" && auditPollRef.current) {
+              clearInterval(auditPollRef.current);
+              auditPollRef.current = null;
+            }
+
+            if (report.status === "failed") {
+              // Extract error from findings (reviews) or checks (audits)
+              let errorDetail = "Unknown error — check server logs for details.";
+              if (report.findings) {
+                const errorFinding = report.findings.find(
+                  (f: { title?: string }) =>
+                    f.title === "Review Error" || f.title === "Parse Error"
+                );
+                if (errorFinding?.description) errorDetail = errorFinding.description;
+              } else if (report.checks) {
+                const errorCheck = report.checks.find(
+                  (c: { status?: string; name?: string }) =>
+                    c.name === "Audit Error" || c.name === "Parse Error"
+                );
+                if (errorCheck?.description) errorDetail = errorCheck.description;
+              }
+              if (type === "review") {
+                setReviewError(`Review failed: ${errorDetail}`);
+                setReviewSubView("form");
+                setIsReviewing(false);
+              } else {
+                setAuditError(`Audit failed: ${errorDetail}`);
+                setIsAuditing(false);
+              }
+              return;
+            }
+
+            if (type === "review") {
+              setReviewReport(report);
+              setReviewSubView("results");
+              setIsReviewing(false);
+            } else {
+              setAuditReport(report);
+              setIsAuditing(false);
+            }
+          }
+        } catch {
+          // Network error during polling — keep retrying
+        }
+      };
+
+      pollFn();
+      const ref = setInterval(pollFn, POLL_INTERVAL);
+      if (type === "review") {
+        reviewPollRef.current = ref;
+      } else {
+        auditPollRef.current = ref;
+      }
+    },
+    []
+  );
 
   const handleReview = async (data: {
     repo: string;
@@ -152,9 +139,8 @@ function ReviewsContent() {
     setReviewReport(null);
     setReviewSubView("loading");
     setReviewProgress([]);
+    setReviewMeta({ repo: data.repo, reviewTypes: data.reviewTypes, scope: data.scope });
 
-    // Simulate progress steps
-    // TODO: Replace with real API data / streaming progress
     const steps = [
       "Connecting to repository...",
       "Fetching file tree...",
@@ -164,77 +150,42 @@ function ReviewsContent() {
     ];
 
     try {
-      // Simulate progressive loading
-      for (let i = 0; i < steps.length; i++) {
-        await new Promise((r) => setTimeout(r, 600));
-        setReviewProgress((prev) => [...prev, steps[i]]);
-      }
-
-      // Try the real API first
-      try {
-        const res = await fetch("/api/reviews/start", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data),
+      const progressInterval = setInterval(() => {
+        setReviewProgress((prev) => {
+          if (prev.length < steps.length) {
+            return [...prev, steps[prev.length]];
+          }
+          return prev;
         });
-        const json = await res.json();
-        if (res.ok) {
-          setReviewReport(json);
-          setReviewSubView("results");
-          return;
-        }
-      } catch {
-        // API not available, fall through to mock data
-      }
+      }, 800);
 
-      // Use mock data for demo
-      // TODO: Replace with real API data
-      const mockReport: ReviewReport = {
-        ...MOCK_REVIEW_REPORT,
-        repo: data.repo,
-        reviewTypes: data.reviewTypes,
-        findings: MOCK_REVIEW_REPORT.findings.filter((f) =>
-          data.reviewTypes.includes(f.category)
-        ),
-      };
-
-      // Recalculate score based on filtered findings
-      const highCount = mockReport.findings.filter(
-        (f) => f.severity === "high"
-      ).length;
-      const medCount = mockReport.findings.filter(
-        (f) => f.severity === "medium"
-      ).length;
-      mockReport.overallScore = Math.max(
-        1,
-        10 - highCount * 1.5 - medCount * 0.5
-      );
-
-      mockReport.categoryScores = data.reviewTypes.map((type) => {
-        const typeFindings = mockReport.findings.filter(
-          (f) => f.category === type
-        );
-        return {
-          category: type,
-          score: Math.max(
-            2,
-            10 -
-              typeFindings.filter((f) => f.severity === "high").length * 2 -
-              typeFindings.filter((f) => f.severity === "medium").length
-          ),
-          maxScore: 10,
-          issueCount: typeFindings.length,
-        };
+      const res = await fetch("/api/reviews/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
       });
 
-      setReviewReport(mockReport);
-      setReviewSubView("results");
+      clearInterval(progressInterval);
+      setReviewProgress(steps);
+
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json.error || json.details || "Review failed");
+      }
+
+      // API returns { id, status: "running" } (HTTP 202) — start polling
+      if (json.id && json.status === "running") {
+        pollReport(json.id, "review");
+      } else {
+        setReviewReport(json);
+        setReviewSubView("results");
+        setIsReviewing(false);
+      }
     } catch (err) {
       setReviewError(
         err instanceof Error ? err.message : "Review failed"
       );
       setReviewSubView("form");
-    } finally {
       setIsReviewing(false);
     }
   };
@@ -253,29 +204,50 @@ function ReviewsContent() {
       const json = await res.json();
       if (!res.ok) {
         setAuditError(json.error || "Audit failed");
+        setIsAuditing(false);
         return;
       }
-      setAuditReport(json);
+
+      // API returns { id, status: "running" } (HTTP 202) — start polling
+      if (json.id && json.status === "running") {
+        pollReport(json.id, "audit");
+      } else {
+        setAuditReport(json);
+        setIsAuditing(false);
+      }
     } catch (err) {
       setAuditError(err instanceof Error ? err.message : "Network error");
-    } finally {
       setIsAuditing(false);
     }
   };
 
   const handleHistorySelect = useCallback(
-    (entry: ReviewHistoryEntry) => {
-      // TODO: Replace with real API call to fetch full review report
-      if (entry.status === "complete") {
-        const mockReport: ReviewReport = {
-          ...MOCK_REVIEW_REPORT,
-          id: entry.id,
-          repo: entry.repo,
-          overallScore: entry.score,
-        };
-        setReviewReport(mockReport);
-        setReviewSubView("results");
-        setActiveTab("review");
+    async (entry: ReviewHistoryEntry) => {
+      if (entry.status !== "complete") return;
+
+      // Fetch the full report from the API
+      const reportType = entry.reportType || "review";
+      const endpoint =
+        reportType === "audit"
+          ? `/api/reviews/${entry.id}?type=audit`
+          : `/api/reviews/${entry.id}`;
+
+      try {
+        const res = await fetch(endpoint);
+        if (!res.ok) return;
+        const report = await res.json();
+
+        if (reportType === "audit") {
+          setAuditReport(report);
+          setActiveTab("audit");
+        } else {
+          setReviewReport(report);
+          setReviewSubView("results");
+          setActiveTab("review");
+        }
+      } catch {
+        // If individual report fetch fails, just navigate to the tab
+        setActiveTab(reportType === "audit" ? "audit" : "review");
       }
     },
     []
@@ -291,7 +263,7 @@ function ReviewsContent() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Code Reviews</h1>
+        <h1 className="text-2xl font-bold">Reviews</h1>
         <p className="text-sm text-muted-foreground mt-1">
           Run AI-powered code reviews and best practices audits.
         </p>
@@ -323,7 +295,21 @@ function ReviewsContent() {
               <CardContent className="py-12">
                 <div className="flex flex-col items-center gap-4">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                  <p className="text-sm font-medium">Analyzing repository...</p>
+                  <p className="text-sm font-medium">
+                    Analyzing {reviewMeta?.repo ?? "repository"}...
+                  </p>
+                  {reviewMeta && (
+                    <div className="flex flex-wrap items-center justify-center gap-2">
+                      {reviewMeta.reviewTypes.map((t) => (
+                        <Badge key={t} variant="secondary" className="capitalize text-xs">
+                          {t}
+                        </Badge>
+                      ))}
+                      <Badge variant="outline" className="text-xs">
+                        {reviewMeta.scope === "full-repo" ? "Full Repository" : reviewMeta.scope === "pr" ? "Pull Request" : "File Pattern"}
+                      </Badge>
+                    </div>
+                  )}
                   <div className="w-full max-w-md space-y-2">
                     {reviewProgress.map((step, i) => (
                       <div
@@ -373,8 +359,9 @@ function ReviewsContent() {
                 </label>
                 <Input
                   value={auditRepo}
-                  onChange={(e) => setAuditRepo(e.target.value)}
-                  placeholder="owner/repo"
+                  readOnly
+                  placeholder="Select a repository from the header"
+                  className="bg-muted/50"
                 />
               </div>
               <Button

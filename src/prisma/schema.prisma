@@ -1,0 +1,95 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model AgentTask {
+  id          String   @id @default(cuid())
+  type        String
+  status      String   @default("queued")
+  repo        String
+  description String
+  branch      String?
+  prUrl       String?  @map("pr_url")
+  progress    String   @default("[]")
+  result      String?
+  userId      String?  @map("user_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([type])
+  @@index([userId])
+  @@map("agent_tasks")
+}
+
+model ReviewReport {
+  id             String   @id @default(cuid())
+  repo           String
+  reviewTypes    String   @default("[]") @map("review_types")
+  overallScore   Float    @default(0) @map("overall_score")
+  categoryScores String   @default("[]") @map("category_scores")
+  findings       String   @default("[]")
+  status         String   @default("completed")
+  userId         String?  @map("user_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@index([repo])
+  @@index([userId])
+  @@map("review_reports")
+}
+
+model AuditReport {
+  id              String   @id @default(cuid())
+  repo            String
+  complianceScore Float    @default(0) @map("compliance_score")
+  checks          String   @default("[]")
+  recommendations String   @default("[]")
+  status          String   @default("completed")
+  userId          String?  @map("user_id")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@index([repo])
+  @@index([userId])
+  @@map("audit_reports")
+}
+
+model WorkHistory {
+  id          String    @id @default(cuid())
+  userId      String?   @map("user_id")
+  actionType  String    @map("action_type")
+  entityId    String?   @map("entity_id")
+  repo        String?
+  summary     String
+  status      String    @default("started")
+  startedAt   DateTime  @default(now()) @map("started_at")
+  completedAt DateTime? @map("completed_at")
+  metadata    String    @default("{}")
+
+  @@index([userId])
+  @@index([actionType])
+  @@index([repo])
+  @@map("work_history")
+}
+
+model ScaffoldPlan {
+  id               String   @id @default(cuid())
+  repo             String?
+  mode             String
+  description      String?
+  plan             String   @default("{}")
+  status           String   @default("generating")
+  knowledgeSources String   @default("[]") @map("knowledge_sources")
+  userId           String?  @map("user_id")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@map("scaffold_plans")
+}
