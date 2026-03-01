@@ -57,14 +57,13 @@ export async function POST(request: Request) {
       .filter(Boolean)
       .join("\n");
 
-    const labels: string[] = [finding.category, finding.severity];
-
+    // Don't pass labels — they may not exist in the target repo and GitHub
+    // returns 422 Validation Failed for unknown labels
     const { data } = await octokit.rest.issues.create({
       owner,
       repo: repoName,
       title: `[${finding.severity.toUpperCase()}] ${finding.title}`,
       body,
-      labels,
     });
 
     await logWorkComplete(workId, { issueNumber: data.number, issueUrl: data.html_url });

@@ -9,17 +9,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Pencil, Trash2, Search, Eye } from "lucide-react";
 import type { KnowledgeDocument } from "@/lib/types";
 
-const AGENT_TYPES = ["Review", "Scaffold", "Audit"] as const;
+const AGENT_TYPES = ["Review Planner", "Scaffold Planner", "Audit"] as const;
 
 function getUsedBy(category: string): string[] {
   switch (category) {
-    case "review-instructions": return ["Review"];
-    case "scaffolding": return ["Scaffold"];
-    case "best-practices": return ["Review", "Scaffold"];
-    case "agent-instructions": return ["Review", "Scaffold"];
-    case "ci-cd": return ["Scaffold"];
-    case "responsible-ai": return ["Review", "Audit"];
-    case "architecture-patterns": return ["Review", "Scaffold"];
+    case "review-instructions": return ["Review Planner"];
+    case "scaffolding": return ["Scaffold Planner"];
+    case "best-practices": return ["Review Planner", "Scaffold Planner"];
+    case "agent-instructions": return ["Review Planner", "Scaffold Planner"];
+    case "ci-cd": return ["Scaffold Planner"];
+    case "responsible-ai": return ["Review Planner", "Audit"];
+    case "architecture-patterns": return ["Review Planner", "Scaffold Planner"];
     default: return [];
   }
 }
@@ -30,6 +30,7 @@ interface DocumentListProps {
   onDelete: (filename: string) => void;
   onPreview?: (filename: string) => void;
   categoryFilter: string;
+  onCategoryFilterChange?: (category: string) => void;
   agentFilter?: string;
   onAgentFilterChange?: (agent: string) => void;
   searchQuery?: string;
@@ -42,6 +43,7 @@ export function DocumentList({
   onDelete,
   onPreview,
   categoryFilter,
+  onCategoryFilterChange,
   agentFilter = "all",
   onAgentFilterChange,
   searchQuery = "",
@@ -84,8 +86,21 @@ export function DocumentList({
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Search documents..." value={searchQuery} onChange={(e) => onSearchChange?.(e.target.value)} className="pl-9" />
         </div>
+        <Select value={categoryFilter} onValueChange={(v) => onCategoryFilterChange?.(v)}>
+          <SelectTrigger className="w-48"><SelectValue placeholder="All Categories" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Categories</SelectItem>
+            <SelectItem value="best-practices">Best Practices</SelectItem>
+            <SelectItem value="scaffolding">Scaffolding</SelectItem>
+            <SelectItem value="review-instructions">Review Instructions</SelectItem>
+            <SelectItem value="agent-instructions">Agent Instructions</SelectItem>
+            <SelectItem value="architecture-patterns">Architecture Patterns</SelectItem>
+            <SelectItem value="ci-cd">CI/CD</SelectItem>
+            <SelectItem value="responsible-ai">Responsible AI</SelectItem>
+          </SelectContent>
+        </Select>
         <Select value={agentFilter} onValueChange={(v) => onAgentFilterChange?.(v)}>
-          <SelectTrigger className="w-40"><SelectValue placeholder="All Agents" /></SelectTrigger>
+          <SelectTrigger className="w-44"><SelectValue placeholder="All Agents" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Agents</SelectItem>
             {AGENT_TYPES.map((agent) => (<SelectItem key={agent} value={agent}>{agent}</SelectItem>))}
@@ -97,7 +112,7 @@ export function DocumentList({
           <TableRow>
             <TableHead>Name</TableHead>
             <TableHead>Category</TableHead>
-            <TableHead>Used By</TableHead>
+            <TableHead>Used By Agents</TableHead>
             <TableHead className="text-right">Chunks</TableHead>
             <TableHead>Updated</TableHead>
             <TableHead className="w-28">Actions</TableHead>

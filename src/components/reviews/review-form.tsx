@@ -8,8 +8,9 @@ import {
   Card, CardContent, CardHeader, CardTitle, CardDescription,
 } from "@/components/ui/card";
 import {
-  ShieldCheck, Zap, Accessibility, Code2, CheckCircle2, XCircle, BookOpen,
+  ShieldCheck, Zap, Accessibility, Code2, CheckCircle2, BookOpen,
 } from "lucide-react";
+import { useRepoContext } from "@/lib/repo-context";
 import type { ReviewType, ReviewScope } from "@/lib/types";
 
 interface ReviewFormProps {
@@ -50,10 +51,9 @@ const SCOPES: { value: ReviewScope; label: string; description: string }[] = [
   { value: "files", label: "File Pattern", description: "Review files matching a pattern" },
 ];
 
-const REPO_PATTERN = /^[a-zA-Z0-9._-]+\/[a-zA-Z0-9._-]+$/;
-
 export function ReviewForm({ onSubmit, isLoading }: ReviewFormProps) {
-  const [repo, setRepo] = useState("");
+  const { selectedRepo: globalRepo } = useRepoContext();
+  const repo = globalRepo?.fullName ?? "";
   const [selectedTypes, setSelectedTypes] = useState<ReviewType[]>(["general"]);
   const [scope, setScope] = useState<ReviewScope>("full-repo");
   const [prNumber, setPrNumber] = useState("");
@@ -69,8 +69,7 @@ export function ReviewForm({ onSubmit, isLoading }: ReviewFormProps) {
       .catch(() => {});
   }, []);
 
-  const repoValid = useMemo(() => REPO_PATTERN.test(repo.trim()), [repo]);
-  const repoTouched = repo.length > 0;
+  const repoValid = repo.includes("/");
 
   const toggleType = (type: ReviewType) => {
     setSelectedTypes((prev) =>
@@ -108,20 +107,12 @@ export function ReviewForm({ onSubmit, isLoading }: ReviewFormProps) {
       <CardContent className="space-y-6">
         <div className="space-y-2">
           <label className="text-sm font-medium">Repository</label>
-          <div className="relative">
-            <Input
-              value={repo}
-              onChange={(e) => setRepo(e.target.value)}
-              placeholder="owner/repo"
-              className={repoTouched ? (repoValid ? "pr-9 border-green-500/50 focus-visible:ring-green-500/30" : "pr-9 border-red-500/50 focus-visible:ring-red-500/30") : ""}
-            />
-            {repoTouched && (
-              <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                {repoValid ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : <XCircle className="h-4 w-4 text-red-500" />}
-              </div>
-            )}
-          </div>
-          {repoTouched && !repoValid && <p className="text-xs text-red-500">Enter a valid repository in owner/repo format</p>}
+          <Input
+            value={repo}
+            readOnly
+            placeholder="Select a repository from the header"
+            className="bg-muted/50"
+          />
         </div>
 
         <div className="space-y-2">

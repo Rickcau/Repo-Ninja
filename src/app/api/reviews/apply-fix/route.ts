@@ -1,15 +1,8 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import {
-  getOctokit,
-  getFileContent,
-  createBranch,
-  commitFiles,
-  createPullRequest,
-} from "@/lib/github/octokit";
-import { askCopilot } from "@/lib/copilot-sdk/client";
-import { nanoid } from "nanoid";
+import { agentWithGitHub } from "@/lib/copilot-sdk/client";
+import { ChromaDBStore } from "@/lib/chromadb/chromadb-store";
 import { taskRunner } from "@/lib/services/task-runner";
 import {
   createAgentTask,
@@ -58,60 +51,124 @@ export async function POST(request: Request) {
     );
 
     try {
-      await updateAgentTask(task.id, { status: "running", progressMessage: "Fetching original file..." });
+      await updateAgentTask(task.id, { status: "running", progressMessage: "Starting fix..." });
 
-      const octokit = getOctokit(accessToken);
-      const originalCode = await getFileContent(octokit, owner, repoName, finding.file!);
+      // Try to get KB context (graceful degradation if ChromaDB is unavailable)
+      let kbContext = "";
+      try {
+        await updateAgentTask(task.id, { progressMessage: "Querying knowledge base..." });
+        const store = new ChromaDBStore();
+        const kbQuery = `${finding.category} ${finding.title} ${finding.description}`;
+        const knowledgeDocs = await store.search(kbQuery, 5);
+        if (knowledgeDocs.length > 0) {
+          kbContext = "\n\nRelevant knowledge base documents for context:\n" +
+            knowledgeDocs.map((doc) => `--- ${doc.metadata.filename} ---\n${doc.content}`).join("\n\n");
+          await updateAgentTask(task.id, {
+            progressMessage: `Retrieved ${knowledgeDocs.length} KB docs`,
+          });
+        }
+      } catch (kbErr) {
+        const msg = kbErr instanceof Error ? kbErr.message : "Unknown KB error";
+        console.warn(`[reviews/apply-fix] KB query failed (continuing without KB): ${msg}`);
+        await updateAgentTask(task.id, { progressMessage: "KB unavailable, continuing without knowledge base grounding" });
+      }
 
-      await updateAgentTask(task.id, { progressMessage: "Generating fix with Copilot..." });
+      if (taskRunner.isCancelled(task.id)) return;
 
-      const prompt = `You are Repo-Ninja. Apply the following fix to the file.
+      // Build the prompt — let the agent handle all git operations via MCP tools
+      const prompt = `You are Repo-Ninja, an expert developer agent. You have access to GitHub tools to read files, create branches, commit files, and open pull requests.
 
-File: ${finding.file}
-Issue: ${finding.title}
-Description: ${finding.description}
-Suggestion: ${finding.suggestion || "Apply the suggested fix"}
-${finding.suggestedCode ? `Suggested code:\n${finding.suggestedCode}` : ""}
+Repository: ${owner}/${repoName}
 
-Original file content:
-\`\`\`
-${originalCode}
-\`\`\`
+A code review found the following issue that needs to be fixed:
 
-Return ONLY the complete updated file content, with no markdown fences or explanation.`;
+**Finding:** ${finding.title}
+**Severity:** ${finding.severity}
+**Category:** ${finding.category}
+**File:** ${finding.file}${finding.line ? ` (line ${finding.line})` : ""}
+**Description:** ${finding.description}
+${finding.suggestion ? `**Suggestion:** ${finding.suggestion}` : ""}
+${finding.suggestedCode ? `**Suggested code:**\n\`\`\`\n${finding.suggestedCode}\n\`\`\`` : ""}
+${finding.codeSnippet ? `**Current code snippet:**\n\`\`\`\n${finding.codeSnippet}\n\`\`\`` : ""}
+${kbContext}
 
-      const fixedCode = await askCopilot(accessToken, prompt, {
-        systemMessage: "You are Repo-Ninja, an expert developer. Return only the complete updated file content, no explanations.",
-        timeoutMs: 180_000,
-      });
+Your task:
+1. Read the file \`${finding.file}\` from the repository \`${owner}/${repoName}\`
+2. Understand the issue and implement the suggested fix
+3. Create a new feature branch (e.g. \`repo-ninja/fix/<short-description>\`)
+4. Commit the fix with a clear commit message
+5. Open a pull request with the following description:
 
-      const branchName = `repo-ninja/fix/${nanoid(8)}`;
-      await updateAgentTask(task.id, { branch: branchName, progressMessage: `Creating branch ${branchName}...` });
-      await createBranch(octokit, owner, repoName, branchName, "HEAD");
+## Automated Fix by Repo-Ninja
 
-      await updateAgentTask(task.id, { progressMessage: "Committing fix..." });
-      await commitFiles(octokit, owner, repoName, branchName, [
-        { path: finding.file!, content: fixedCode },
-      ], `fix: ${finding.title}`);
+**Finding:** ${finding.title}
+**Severity:** ${finding.severity}
+**File:** \`${finding.file}\`
 
-      await updateAgentTask(task.id, { progressMessage: "Creating pull request..." });
-      const pr = await createPullRequest(
-        octokit, owner, repoName,
-        `fix: ${finding.title}`,
-        `## Automated Fix by Repo-Ninja\n\n**Finding:** ${finding.title}\n**Severity:** ${finding.severity}\n**File:** \`${finding.file}\`\n\n${finding.description}\n\n---\n*Applied automatically by Repo-Ninja*`,
-        branchName, "main"
+${finding.description}
+
+---
+*Applied automatically by Repo-Ninja*
+
+Important:
+- Create a feature branch (not directly on main)
+- Make a clean, focused commit that only addresses this specific finding
+- The PR title should be: fix: ${finding.title}`;
+
+      await updateAgentTask(task.id, { progressMessage: "Agent is working..." });
+
+      // Track PR URL from agent's tool calls
+      let detectedPrUrl = "";
+      let detectedBranch = "";
+
+      const finalContent = await agentWithGitHub(
+        accessToken,
+        prompt,
+        (event) => {
+          if (taskRunner.isCancelled(task.id)) return;
+
+          if (event.type === "tool_call") {
+            const toolMsg = `Using tool: ${event.toolName}`;
+            updateAgentTask(task.id, { progressMessage: toolMsg }).catch(() => {});
+          } else if (event.type === "tool_result") {
+            const detail = event.detail || "";
+            const prMatch = detail.match(/https:\/\/github\.com\/[^\s"]+\/pull\/\d+/);
+            if (prMatch) detectedPrUrl = prMatch[0];
+            const branchMatch = detail.match(/refs\/heads\/([^\s"]+)/);
+            if (branchMatch) detectedBranch = branchMatch[1];
+          } else if (event.type === "error") {
+            updateAgentTask(task.id, { progressMessage: `Error: ${event.detail}` }).catch(() => {});
+          }
+        },
+        300_000 // 5 minute timeout
       );
+
+      if (taskRunner.isCancelled(task.id)) return;
+
+      // Try to extract PR URL from the agent's final message if not detected from tools
+      if (!detectedPrUrl) {
+        const prMatch = finalContent.match(/https:\/\/github\.com\/[^\s)]+\/pull\/\d+/);
+        if (prMatch) detectedPrUrl = prMatch[0];
+      }
 
       await updateAgentTask(task.id, {
         status: "completed",
-        prUrl: pr.htmlUrl,
-        progressMessage: "Pull request created",
-        result: { summary: `Fix applied: ${finding.title}`, prUrl: pr.htmlUrl },
+        branch: detectedBranch || undefined,
+        prUrl: detectedPrUrl || undefined,
+        progressMessage: detectedPrUrl ? "Pull request created successfully" : "Fix completed",
+        result: {
+          summary: finalContent.slice(0, 1000),
+          prUrl: detectedPrUrl || undefined,
+        },
       });
 
-      await logWorkComplete(workId, { prUrl: pr.htmlUrl, branch: branchName });
+      await logWorkComplete(workId, {
+        prUrl: detectedPrUrl || undefined,
+        branch: detectedBranch || undefined,
+      });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unknown error";
+      console.error(`[reviews/apply-fix] Task ${task.id} failed:`, message);
       await updateAgentTask(task.id, {
         status: "failed",
         progressMessage: `Error: ${message}`,

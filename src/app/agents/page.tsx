@@ -2,10 +2,12 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { RepoSelector } from "@/components/agents/repo-selector";
+import { useRepoContext } from "@/lib/repo-context";
 import { IssueList } from "@/components/agents/issue-list";
 import { CodeWriterForm } from "@/components/agents/code-writer-form";
+import { CustomTaskForm } from "@/components/agents/custom-task-form";
 import { TaskList } from "@/components/agents/task-list";
 import { AgentTypeSelector, type AgentTypeId } from "@/components/agents/agent-type-selector";
 import { AgentDetailPanel, type AgentTaskDetail } from "@/components/agents/agent-detail-panel";
@@ -17,13 +19,8 @@ import {
   Loader2,
   Clock,
   GitPullRequest,
+  Trash2,
 } from "lucide-react";
-
-interface SelectedRepo {
-  fullName: string;
-  owner: string;
-  name: string;
-}
 
 function TaskStatusIcon({ status }: { status: AgentTaskStatus }) {
   switch (status) {
@@ -41,16 +38,30 @@ function TaskStatusIcon({ status }: { status: AgentTaskStatus }) {
 }
 
 export default function AgentsPage() {
-  const [selectedRepo, setSelectedRepo] = useState<SelectedRepo | null>(null);
+  const { selectedRepo } = useRepoContext();
   const [selectedAgentType, setSelectedAgentType] = useState<AgentTypeId | null>(null);
   const [assigningIssue, setAssigningIssue] = useState<number | null>(null);
   const [codeWriterSubmitting, setCodeWriterSubmitting] = useState(false);
+  const [customTaskSubmitting, setCustomTaskSubmitting] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [selectedTask, setSelectedTask] = useState<AgentTaskDetail | null>(null);
   const [detailPanelOpen, setDetailPanelOpen] = useState(false);
   const [tasks, setTasks] = useState<AgentTask[]>([]);
 
   const triggerRefresh = () => setRefreshTrigger((n) => n + 1);
+
+  const handleClearTasks = async () => {
+    if (!confirm("Clear all agent tasks? This cannot be undone.")) return;
+    try {
+      const res = await fetch("/api/agents/tasks", { method: "DELETE" });
+      if (res.ok) {
+        setTasks([]);
+        triggerRefresh();
+      }
+    } catch {
+      // Silently fail
+    }
+  };
 
   const fetchTasks = useCallback(() => {
     fetch("/api/agents/tasks")
@@ -108,12 +119,34 @@ export default function AgentsPage() {
     }
   };
 
+  const handleCustomTask = async (description: string) => {
+    if (!selectedRepo) return;
+    setCustomTaskSubmitting(true);
+    try {
+      await fetch("/api/agents/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "custom-task",
+          repo: selectedRepo.fullName,
+          description,
+        }),
+      });
+      triggerRefresh();
+    } catch {
+      // Error handling is in the task list
+    } finally {
+      setCustomTaskSubmitting(false);
+    }
+  };
+
   const handleTaskClick = async (task: AgentTask) => {
     // Fetch detailed info for this task
     try {
       const res = await fetch(`/api/agents/${task.id}`);
       if (res.ok) {
-        const detail = await res.json();
+        const json = await res.json();
+        const detail = json.task ?? json;
         setSelectedTask({
           id: detail.id,
           name: detail.description || task.description,
@@ -123,6 +156,10 @@ export default function AgentsPage() {
           createdAt: detail.createdAt || new Date().toISOString(),
           steps: detail.steps || [],
           groundedIn: detail.groundedIn || [],
+          errorMessage: detail.status === "failed" ? (detail.result?.summary ?? detail.errorMessage) : undefined,
+          progress: detail.progress || [],
+          prUrl: detail.prUrl || detail.result?.prUrl,
+          summary: detail.result?.summary,
         });
         setDetailPanelOpen(true);
       }
@@ -131,12 +168,16 @@ export default function AgentsPage() {
       setSelectedTask({
         id: task.id,
         name: task.description,
-        repo: "",
+        repo: task.repo || "",
         status: task.status,
-        type: "custom-task",
-        createdAt: new Date().toISOString(),
+        type: task.type || "custom-task",
+        createdAt: task.createdAt || new Date().toISOString(),
         steps: [],
         groundedIn: [],
+        errorMessage: task.status === "failed" ? task.result?.summary : undefined,
+        progress: task.progress || [],
+        prUrl: task.prUrl || task.result?.prUrl,
+        summary: task.result?.summary,
       });
       setDetailPanelOpen(true);
     }
@@ -151,18 +192,16 @@ export default function AgentsPage() {
         </p>
       </div>
 
-      {/* Repo Selector */}
-      <Card>
-        <CardContent className="pt-6">
-          <label className="text-sm font-medium block mb-2">Select Repository</label>
-          <RepoSelector onChange={setSelectedRepo} />
-          {selectedRepo && (
-            <p className="text-sm text-muted-foreground mt-2">
-              Selected: <span className="font-mono">{selectedRepo.fullName}</span>
+      {/* No repo selected prompt */}
+      {!selectedRepo && (
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-sm text-muted-foreground">
+              Select a repository from the header dropdown to get started.
             </p>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Agent Type Selector */}
       {selectedRepo && (
@@ -178,7 +217,7 @@ export default function AgentsPage() {
       {selectedRepo && selectedAgentType && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Issue Solver Section */}
-          {(selectedAgentType === "issue-solver" || selectedAgentType === "custom-task") && (
+          {selectedAgentType === "issue-solver" && (
             <Card>
               <CardContent className="pt-6">
                 <h2 className="text-lg font-semibold mb-4">Issue Solver</h2>
@@ -196,7 +235,7 @@ export default function AgentsPage() {
           )}
 
           {/* Code Writer Section */}
-          {(selectedAgentType === "code-writer" || selectedAgentType === "custom-task") && (
+          {selectedAgentType === "code-writer" && (
             <Card>
               <CardContent className="pt-6">
                 <h2 className="text-lg font-semibold mb-4">Code Writer</h2>
@@ -210,13 +249,37 @@ export default function AgentsPage() {
               </CardContent>
             </Card>
           )}
+
+          {/* Custom Task Section */}
+          {selectedAgentType === "custom-task" && (
+            <Card>
+              <CardContent className="pt-6">
+                <h2 className="text-lg font-semibold mb-4">Custom Task</h2>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Give the agent any instruction and it will execute it against your repository, creating a pull request with the results.
+                </p>
+                <CustomTaskForm
+                  onSubmit={handleCustomTask}
+                  isSubmitting={customTaskSubmitting}
+                />
+              </CardContent>
+            </Card>
+          )}
         </div>
       )}
 
       {/* Agent Tasks from API */}
       <Card>
         <CardContent className="pt-6">
-          <h2 className="text-lg font-semibold mb-4">Recent Agent Tasks</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold">Recent Agent Tasks</h2>
+            {tasks.length > 0 && (
+              <Button variant="outline" size="sm" onClick={handleClearTasks} className="gap-2">
+                <Trash2 className="h-4 w-4" />
+                Clear Tasks
+              </Button>
+            )}
+          </div>
 
           {tasks.length > 0 && (
             <div className="space-y-2 mb-6">
@@ -247,6 +310,12 @@ export default function AgentsPage() {
                         {new Date(task.createdAt).toLocaleTimeString()}
                       </span>
                     </div>
+                    {task.status === "failed" && task.result?.summary && (
+                      <p className="text-xs text-rose-400 mt-1 line-clamp-2">{task.result.summary}</p>
+                    )}
+                    {task.status === "running" && task.progress.length > 0 && (
+                      <p className="text-xs text-muted-foreground mt-1 truncate">{task.progress[task.progress.length - 1]}</p>
+                    )}
                   </div>
 
                   {/* Progress indicator */}
@@ -254,11 +323,17 @@ export default function AgentsPage() {
                     {task.status === "running" && (
                       <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
                     )}
-                    {task.status === "completed" && task.result?.prUrl && (
-                      <div className="flex items-center gap-1 text-xs text-emerald-500">
+                    {task.status === "completed" && (task.prUrl || task.result?.prUrl) && (
+                      <a
+                        href={task.prUrl || task.result?.prUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-xs text-emerald-500 hover:text-emerald-400 hover:underline"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <GitPullRequest className="h-3 w-3" />
-                        <span>PR</span>
-                      </div>
+                        <span>View PR</span>
+                      </a>
                     )}
                     <StatusBadge status={task.status} />
                   </div>

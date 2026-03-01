@@ -112,7 +112,7 @@ export function RepoSelectorGlobal() {
             "h-8 gap-2 px-3 text-sm font-medium",
             "border border-border rounded-md",
             "text-muted-foreground hover:text-foreground",
-            "max-w-[240px]"
+            "max-w-[360px]"
           )}
         >
           <GitBranch className="h-4 w-4 shrink-0" />

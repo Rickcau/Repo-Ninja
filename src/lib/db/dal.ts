@@ -125,6 +125,11 @@ export async function listAgentTasks(
   return { items: rows.map(dbToAgentTask), total };
 }
 
+export async function clearAgentTasks(): Promise<number> {
+  const { count } = await prisma.agentTask.deleteMany({});
+  return count;
+}
+
 // ─── Review Reports ────────────────────────────────────────────────
 
 function dbToReviewReport(row: {
@@ -288,6 +293,7 @@ export type ActionType =
   | "scaffold-create"
   | "agent-issue-solver"
   | "agent-code-writer"
+  | "agent-custom-task"
   | "kb-edit"
   | "kb-reindex";
 
@@ -351,17 +357,35 @@ export async function logWorkStart(
 }
 
 export async function logWorkComplete(workId: string, metadata?: Record<string, unknown>): Promise<void> {
+  // Merge with existing metadata so the progress log is preserved
+  const existing = await prisma.workHistory.findUnique({ where: { id: workId } });
+  const existingMeta = existing ? JSON.parse(existing.metadata) : {};
   await prisma.workHistory.update({
     where: { id: workId },
     data: {
       status: "completed",
       completedAt: new Date(),
-      ...(metadata && { metadata: JSON.stringify(metadata) }),
+      metadata: JSON.stringify({ ...existingMeta, ...(metadata ?? {}) }),
     },
   });
 }
 
-export async function logWorkFailure(workId: string, error: string): Promise<void> {
+export async function logWorkProgress(workId: string, message: string): Promise<void> {
+  const existing = await prisma.workHistory.findUnique({ where: { id: workId } });
+  if (!existing) return;
+  const meta = JSON.parse(existing.metadata);
+  const progress: string[] = meta.progress ?? [];
+  progress.push(`[${new Date().toISOString().substring(11, 19)}] ${message}`);
+  await prisma.workHistory.update({
+    where: { id: workId },
+    data: {
+      status: "running",
+      metadata: JSON.stringify({ ...meta, progress }),
+    },
+  });
+}
+
+export async function logWorkFailure(workId: string, error: string, extra?: Record<string, unknown>): Promise<void> {
   const existing = await prisma.workHistory.findUnique({ where: { id: workId } });
   const existingMeta = existing ? JSON.parse(existing.metadata) : {};
 
@@ -370,7 +394,7 @@ export async function logWorkFailure(workId: string, error: string): Promise<voi
     data: {
       status: "failed",
       completedAt: new Date(),
-      metadata: JSON.stringify({ ...existingMeta, error }),
+      metadata: JSON.stringify({ ...existingMeta, ...extra, error }),
     },
   });
 }
@@ -402,6 +426,11 @@ export async function listWorkHistory(
 export async function getWorkHistoryEntry(id: string): Promise<WorkHistoryEntry | null> {
   const row = await prisma.workHistory.findUnique({ where: { id } });
   return row ? dbToWorkHistory(row) : null;
+}
+
+export async function clearWorkHistory(): Promise<number> {
+  const { count } = await prisma.workHistory.deleteMany({});
+  return count;
 }
 
 // ─── Scaffold Plans ────────────────────────────────────────────────
@@ -522,11 +551,12 @@ export interface DashboardStats {
 }
 
 export async function getDashboardStats(): Promise<DashboardStats> {
-  const [totalTasks, runningTasks, completedTasks, totalReviews, totalAudits, totalScaffolds] =
+  const [totalTasks, runningTasks, completedAgentTasks, completedWorkItems, totalReviews, totalAudits, totalScaffolds] =
     await Promise.all([
       prisma.agentTask.count(),
       prisma.agentTask.count({ where: { status: "running" } }),
       prisma.agentTask.count({ where: { status: "completed" } }),
+      prisma.workHistory.count({ where: { status: "completed" } }),
       prisma.reviewReport.count(),
       prisma.auditReport.count(),
       prisma.scaffoldPlan.count(),
@@ -534,7 +564,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
 
   return {
     activeAgents: runningTasks,
-    completedTasks,
+    completedTasks: completedWorkItems || completedAgentTasks,
     totalTasks,
     totalReviews,
     totalAudits,

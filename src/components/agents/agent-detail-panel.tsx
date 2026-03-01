@@ -1,6 +1,6 @@
 "use client";
 
-import { Pause, Square, FileText, GitPullRequest, Clock } from "lucide-react";
+import { Pause, Square, FileText, GitPullRequest, Clock, ExternalLink } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -31,6 +31,10 @@ export interface AgentTaskDetail {
   createdAt: string;
   steps: TimelineStep[];
   groundedIn: KBReference[];
+  errorMessage?: string;
+  progress?: string[];
+  prUrl?: string;
+  summary?: string;
 }
 
 interface AgentDetailPanelProps {
@@ -90,6 +94,58 @@ export function AgentDetailPanel({
             <span className="capitalize">{task.type.replace("-", " ")}</span>
           </div>
         </div>
+
+        {/* PR Link */}
+        {task.prUrl && (
+          <div className="px-4">
+            <a
+              href={task.prUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-2.5 text-sm text-emerald-400 hover:bg-emerald-500/20 transition-colors"
+            >
+              <GitPullRequest className="h-4 w-4 shrink-0" />
+              <span className="truncate">{task.prUrl}</span>
+              <ExternalLink className="h-3.5 w-3.5 ml-auto shrink-0" />
+            </a>
+          </div>
+        )}
+
+        {/* Summary */}
+        {task.status === "completed" && task.summary && (
+          <div className="px-4 space-y-2">
+            <h3 className="text-sm font-semibold">Summary</h3>
+            <p className="text-xs text-muted-foreground whitespace-pre-wrap">
+              {task.summary}
+            </p>
+          </div>
+        )}
+
+        {/* Error Message */}
+        {task.status === "failed" && task.errorMessage && (
+          <div className="px-4 space-y-2">
+            <h3 className="text-sm font-semibold text-rose-400">Error</h3>
+            <div className="rounded-md border border-rose-500/30 bg-rose-500/10 px-3 py-2">
+              <p className="text-xs text-rose-300 whitespace-pre-wrap break-words">
+                {task.errorMessage}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Progress Log */}
+        {task.progress && task.progress.length > 0 && (
+          <div className="px-4 space-y-2">
+            <h3 className="text-sm font-semibold">Progress Log</h3>
+            <div className="space-y-1">
+              {task.progress.map((msg, i) => (
+                <p key={i} className="text-xs text-muted-foreground">
+                  {msg}
+                </p>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Execution Timeline */}
         <div className="px-4 space-y-3">

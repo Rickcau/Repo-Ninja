@@ -183,8 +183,8 @@ export default function DashboardPage() {
           icon={FileSearch}
           label="Completed Tasks"
           value={stats?.completedTasks ?? completedCount}
-          sparklineData={[0, 0, 0, 0, 0, completedCount, completedCount]}
-          trend={{ value: `+${completedCount}`, direction: "up" }}
+          sparklineData={[0, 0, 0, 0, 0, stats?.completedTasks ?? completedCount, stats?.completedTasks ?? completedCount]}
+          trend={{ value: `+${stats?.completedTasks ?? completedCount}`, direction: "up" }}
           featured
         />
         <StatCard
@@ -202,7 +202,6 @@ export default function DashboardPage() {
           value={(stats?.kbDocuments ?? 0).toLocaleString()}
           sparklineData={[0, 0, 0, 0, 0, stats?.kbDocuments ?? 0, stats?.kbDocuments ?? 0]}
           trend={{ value: `${stats?.kbDocuments ?? 0}`, direction: (stats?.kbDocuments ?? 0) > 0 ? "up" : "down" }}
-          subtitle="ChromaDB"
         />
       </div>
 

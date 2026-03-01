@@ -2,7 +2,9 @@
 
 import { Suspense, useState, useCallback, useRef, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
+import { useRepoContext } from "@/lib/repo-context";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -18,6 +20,7 @@ const POLL_INTERVAL = 3000;
 
 function ReviewsContent() {
   const searchParams = useSearchParams();
+  const { selectedRepo: globalRepo } = useRepoContext();
   const defaultTab = searchParams.get("tab") === "audit" ? "audit" : "review";
 
   const [activeTab, setActiveTab] = useState(defaultTab);
@@ -30,14 +33,21 @@ function ReviewsContent() {
   const [isReviewing, setIsReviewing] = useState(false);
   const [reviewError, setReviewError] = useState<string | null>(null);
   const [reviewProgress, setReviewProgress] = useState<string[]>([]);
+  const [reviewMeta, setReviewMeta] = useState<{
+    repo: string;
+    reviewTypes: ReviewType[];
+    scope: ReviewScope;
+  } | null>(null);
   const reviewPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Audit state
   const [auditReport, setAuditReport] = useState<AuditReport | null>(null);
   const [isAuditing, setIsAuditing] = useState(false);
   const [auditError, setAuditError] = useState<string | null>(null);
-  const [auditRepo, setAuditRepo] = useState("");
   const auditPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Always use the globally selected repo for audits
+  const auditRepo = globalRepo?.fullName ?? "";
 
   // Clean up polling on unmount
   useEffect(() => {
@@ -66,12 +76,27 @@ function ReviewsContent() {
             }
 
             if (report.status === "failed") {
+              // Extract error from findings (reviews) or checks (audits)
+              let errorDetail = "Unknown error — check server logs for details.";
+              if (report.findings) {
+                const errorFinding = report.findings.find(
+                  (f: { title?: string }) =>
+                    f.title === "Review Error" || f.title === "Parse Error"
+                );
+                if (errorFinding?.description) errorDetail = errorFinding.description;
+              } else if (report.checks) {
+                const errorCheck = report.checks.find(
+                  (c: { status?: string; name?: string }) =>
+                    c.name === "Audit Error" || c.name === "Parse Error"
+                );
+                if (errorCheck?.description) errorDetail = errorCheck.description;
+              }
               if (type === "review") {
-                setReviewError("Review failed. Please try again.");
+                setReviewError(`Review failed: ${errorDetail}`);
                 setReviewSubView("form");
                 setIsReviewing(false);
               } else {
-                setAuditError("Audit failed. Please try again.");
+                setAuditError(`Audit failed: ${errorDetail}`);
                 setIsAuditing(false);
               }
               return;
@@ -114,6 +139,7 @@ function ReviewsContent() {
     setReviewReport(null);
     setReviewSubView("loading");
     setReviewProgress([]);
+    setReviewMeta({ repo: data.repo, reviewTypes: data.reviewTypes, scope: data.scope });
 
     const steps = [
       "Connecting to repository...",
@@ -237,7 +263,7 @@ function ReviewsContent() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Code Reviews</h1>
+        <h1 className="text-2xl font-bold">Reviews</h1>
         <p className="text-sm text-muted-foreground mt-1">
           Run AI-powered code reviews and best practices audits.
         </p>
@@ -269,7 +295,21 @@ function ReviewsContent() {
               <CardContent className="py-12">
                 <div className="flex flex-col items-center gap-4">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                  <p className="text-sm font-medium">Analyzing repository...</p>
+                  <p className="text-sm font-medium">
+                    Analyzing {reviewMeta?.repo ?? "repository"}...
+                  </p>
+                  {reviewMeta && (
+                    <div className="flex flex-wrap items-center justify-center gap-2">
+                      {reviewMeta.reviewTypes.map((t) => (
+                        <Badge key={t} variant="secondary" className="capitalize text-xs">
+                          {t}
+                        </Badge>
+                      ))}
+                      <Badge variant="outline" className="text-xs">
+                        {reviewMeta.scope === "full-repo" ? "Full Repository" : reviewMeta.scope === "pr" ? "Pull Request" : "File Pattern"}
+                      </Badge>
+                    </div>
+                  )}
                   <div className="w-full max-w-md space-y-2">
                     {reviewProgress.map((step, i) => (
                       <div
@@ -319,8 +359,9 @@ function ReviewsContent() {
                 </label>
                 <Input
                   value={auditRepo}
-                  onChange={(e) => setAuditRepo(e.target.value)}
-                  placeholder="owner/repo"
+                  readOnly
+                  placeholder="Select a repository from the header"
+                  className="bg-muted/50"
                 />
               </div>
               <Button
