@@ -1,0 +1,3 @@
+# Repo-Ninja Summary
+
+Repo-Ninja is an AI-powered command center for GitHub development, designed to automate and orchestrate common developer tasks using Copilot agents. It enables teams to delegate repo scaffolding, code reviews, issue resolution, and best practices audits to AI agents, all grounded in a customizable knowledge base of organizational standards. Built with Next.js, GitHub Copilot SDK, ChromaDB, and Octokit, Repo-Ninja provides a unified platform for responsible, standards-driven automation in enterprise software development.
